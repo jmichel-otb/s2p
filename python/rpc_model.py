@@ -285,11 +285,13 @@ class RPCModel:
            return cLon, cLat, cAlt
         return lon, lat, alt
 
-
     def direct_estimate_iterative(self, col, row, alt, return_normalized=False):
         """
-        Iterative estimation of direct projection (image to ground), for a
-        list (or array) of image points expressed in image coordinates.
+        Iterative estimation of localisation function (image to ground).
+
+        The estimation is made from the projection function (groud to image)
+        which must be known. The input is a list (or array) of image points
+        expressed in image coordinates.
 
         Args:
             col, row: image coordinates
@@ -312,18 +314,19 @@ class RPCModel:
 
         # use 3 corners of the lon, lat domain and project them into the image
         # to get the first estimation of (lon, lat)
-        # EPS is 2 for the first iteration, then 0.1.
-        lon = -np.ones(len(Xf))
-        lat = -np.ones(len(Xf))
-        EPS = 2
-        x0 = apply_rfm(self.inverseColNum, self.inverseColDen, lat, lon, cAlt)
-        y0 = apply_rfm(self.inverseLinNum, self.inverseLinDen, lat, lon, cAlt)
-        x1 = apply_rfm(self.inverseColNum, self.inverseColDen, lat, lon + EPS, cAlt)
-        y1 = apply_rfm(self.inverseLinNum, self.inverseLinDen, lat, lon + EPS, cAlt)
-        x2 = apply_rfm(self.inverseColNum, self.inverseColDen, lat + EPS, lon, cAlt)
-        y2 = apply_rfm(self.inverseLinNum, self.inverseLinDen, lat + EPS, lon, cAlt)
+        lon0 = -np.ones(len(Xf))
+        lat0 = -np.ones(len(Xf))
+        lon1 = +np.ones(len(Xf))
+        lat1 = +np.ones(len(Xf))
+        x0 = apply_rfm(self.inverseColNum, self.inverseColDen, lat0, lon0, cAlt)
+        y0 = apply_rfm(self.inverseLinNum, self.inverseLinDen, lat0, lon0, cAlt)
+        x1 = apply_rfm(self.inverseColNum, self.inverseColDen, lat0, lon1, cAlt)
+        y1 = apply_rfm(self.inverseLinNum, self.inverseLinDen, lat0, lon1, cAlt)
+        x2 = apply_rfm(self.inverseColNum, self.inverseColDen, lat1, lon0, cAlt)
+        y2 = apply_rfm(self.inverseLinNum, self.inverseLinDen, lat1, lon0, cAlt)
 
-        n = 0
+        #n = 0
+        EPS = .1
         while not np.all((x0 - cCol) ** 2 + (y0 - cRow) ** 2 < 1e-18):
             X0 = np.vstack([x0, y0]).T
             X1 = np.vstack([x1, y1]).T
@@ -349,27 +352,28 @@ class RPCModel:
 
             # use the coefficients a1, a2 to compute an approximation of the
             # point on the gound which in turn will give us the new X0
-            lon += a1 * EPS
-            lat += a2 * EPS
+            lon0 += a1 * (lon1 - lon0)
+            lat0 += a2 * (lat1 - lat0)
+            lon1 = lon0 + EPS
+            lat1 = lat0 + EPS
 
             # update X0, X1 and X2
-            EPS = .1
-            x0 = apply_rfm(self.inverseColNum, self.inverseColDen, lat, lon, cAlt)
-            y0 = apply_rfm(self.inverseLinNum, self.inverseLinDen, lat, lon, cAlt)
-            x1 = apply_rfm(self.inverseColNum, self.inverseColDen, lat, lon + EPS, cAlt)
-            y1 = apply_rfm(self.inverseLinNum, self.inverseLinDen, lat, lon + EPS, cAlt)
-            x2 = apply_rfm(self.inverseColNum, self.inverseColDen, lat + EPS, lon, cAlt)
-            y2 = apply_rfm(self.inverseLinNum, self.inverseLinDen, lat + EPS, lon, cAlt)
+            x0 = apply_rfm(self.inverseColNum, self.inverseColDen, lat0, lon0, cAlt)
+            y0 = apply_rfm(self.inverseLinNum, self.inverseLinDen, lat0, lon0, cAlt)
+            x1 = apply_rfm(self.inverseColNum, self.inverseColDen, lat0, lon1, cAlt)
+            y1 = apply_rfm(self.inverseLinNum, self.inverseLinDen, lat0, lon1, cAlt)
+            x2 = apply_rfm(self.inverseColNum, self.inverseColDen, lat1, lon0, cAlt)
+            y2 = apply_rfm(self.inverseLinNum, self.inverseLinDen, lat1, lon0, cAlt)
             #n += 1
 
         #print 'direct_estimate_iterative: %d iterations' % n
 
         if return_normalized:
-           return lon, lat, cAlt
+           return lon0, lat0, cAlt
 
         # else denormalize and return
-        lon = lon*self.lonScale + self.lonOff
-        lat = lat*self.latScale + self.latOff
+        lon = lon0*self.lonScale + self.lonOff
+        lat = lat0*self.latScale + self.latOff
         return lon, lat, alt
 
 
