@@ -81,7 +81,9 @@ int main(int argc, char** argv)
 	}
 
     LWImage<float> out = alloc_image<float>(out_nx, out_ny, in.comps);
-    map_image(in, H, out, 5, adjustSize, true);
+    std::pair<int,int> offset;
+    offset = map_image(in, H, out, 5, adjustSize, true);
+    std::cout << offset.first << " " << offset.second << std::endl;
 
     // Write only red channel in float
 //    if(argc >= 5 &&
@@ -91,8 +93,8 @@ int main(int argc, char** argv)
         std::cerr << "Error writing file " << argv[4] << std::endl;
         return 1;
     }
-    if(argc >= 5)
-       iio_save_image_float_split(argv[4], out.data, out.w, out.h, out.comps);
+    //if(argc >= 5)
+    //   iio_save_image_float_split(argv[4], out.data, out.w, out.h, out.comps);
 
 //    // Put in white invalid pixels
     for(int i=out.comps*out.w*out.h-1; i>=0; i--)

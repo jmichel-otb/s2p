@@ -93,11 +93,16 @@ std::pair<int,int> map_image(LWImage<float> in,
         offset = boundingBox(map, w, h);
         free(im.data);
         im = alloc_image<float>(w, h, in.comps);
+        libNumerics::matrix<double> mapT(3,3);
+        mapT      = 0.0;
+        mapT(0,2) = -offset.first;
+        mapT(1,2) = -offset.second;
+        mapT(0,0) = 1.0; mapT(1,1) = 1.0; mapT(2,2) = 1.0;
+        map.mat() = mapT*map.mat();
     }
     if(zoomOut < 1.0f) {
         float zoomIn = 1.0f / zoomOut;
-        // GF: added some extra space
-        int wZoom=(int)std::ceil(w*zoomIn*1.5), hZoom=(int)std::ceil(h*zoomIn*1.5);
+        int wZoom=(int)std::ceil(w*zoomIn), hZoom=(int)std::ceil(h*zoomIn);
         LWImage<float> imZoom = alloc_image<float>(wZoom,hZoom,in.comps);
         libNumerics::matrix<double> mapZ(3,3);
         mapZ = 0.0;
@@ -122,7 +127,7 @@ std::pair<int,int> map_image(LWImage<float> in,
         float* pixOut = im.data;
         for(int i = 0; i < im.h; i++)
             for(int j = 0; j < im.w; j++) {
-                double x=j+offset.first, y=i+offset.second;
+                double x=j, y=i;
                 inv(x,y);
                 for(int k=0; k < im.comps; k++)
                     out[k] = vOut;
