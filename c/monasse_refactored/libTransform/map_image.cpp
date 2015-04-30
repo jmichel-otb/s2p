@@ -102,7 +102,8 @@ std::pair<int,int> map_image(LWImage<float> in,
     }
     if(zoomOut < 1.0f) {
         float zoomIn = 1.0f / zoomOut;
-        int wZoom=(int)std::ceil(w*zoomIn), hZoom=(int)std::ceil(h*zoomIn);
+        // GF: add extra-space
+        int wZoom=(int)std::ceil(2*w*zoomIn), hZoom=(int)std::ceil(2*h*zoomIn);
         LWImage<float> imZoom = alloc_image<float>(wZoom,hZoom,in.comps);
         libNumerics::matrix<double> mapZ(3,3);
         mapZ = 0.0;
