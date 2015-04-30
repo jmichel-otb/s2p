@@ -406,7 +406,7 @@ def image_zoom_out_morpho(im, f):
     return out
 
 
-def image_apply_homography(out, im, H, w, h):
+def image_apply_homography(out, im, H, w=None, h=None):
     """
     Applies an homography to an image.
 
@@ -414,18 +414,38 @@ def image_apply_homography(out, im, H, w, h):
         out: path to the output image file
         im: path to the input image file
         H: numpy array containing the 3x3 homography matrix
-        w, h: dimensions (width and height) of the output image
+        w, h (optional): width and height of the output image
 
-    The output image is defined on the domain [0, w] x [0, h]. Its pixels
-    intensities are defined by out(x) = im(H^{-1}(x)). This function calls
-    Pascal Monasse homography binary, refactored by Gabriele.
+    Returns:
+        tx, ty: additional translation that was actually performed. The real
+        homography that was applied to the image is TH, where T is the (tx, ty)
+        translation.
+
+    If w and h are specified, then no additional translation is performed and
+    the output image is defined on the domain [0, w] x [0, h]. If w and h are
+    not specified, then the size of the output image is computed in order to
+    contain the bounding box of all the transported points. An additional
+    translation is estimated to make the top-left corner of that bounding box be
+    in (0, 0).
+
+    In both cases, the pixels intensities of the output image are defined by
+    out(x) = im(H^{-1}(x)), where H is the final homography (the input one
+    composed with the additional translation).
+
+    This function calls Pascal Monasse homography binary, refactored by
+    Gabriele.
     """
     # write the matrix to a file
     Hf = tmpfile('.txt')
     matrix_write(Hf, H)
 
     # apply the homography
-    run("homography %s %s /dev/null %s 0 %d %d" % (im, Hf, out, w, h))
+    if (w is not None) and (h is not None):
+        run("homography %s %s /dev/null %s 0 %d %d" % (im, Hf, out, w, h))
+        return 0, 0
+    else:
+        run("homography %s %s /dev/null %s 1" % (im, Hf, out, w, h))
+        #TODO: read tx and ty from stdout
     return
 
 
