@@ -444,7 +444,7 @@ def image_apply_homography(out, im, H, w=None, h=None):
         run("homography %s %s /dev/null %s 0 %d %d" % (im, Hf, out, w, h))
         return 0, 0
     else:
-        run("homography %s %s /dev/null %s 1" % (im, Hf, out, w, h))
+        run("homography %s %s /dev/null %s 1" % (im, Hf, out))
         #TODO: read tx and ty from stdout
     return
 
