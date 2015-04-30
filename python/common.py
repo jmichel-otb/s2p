@@ -423,9 +423,9 @@ def image_apply_homography(out, im, H, w, h):
     # write the matrix to a file
     Hf = tmpfile('.txt')
     matrix_write(Hf, H)
+
     # apply the homography
-    out_png = tmpfile('.png')
-    run("homography %s %s %s %s 0 %d %d" % (im, Hf, out_png, out, w, h))
+    run("homography %s %s /dev/null %s 0 %d %d" % (im, Hf, out, w, h))
     return
 
 
