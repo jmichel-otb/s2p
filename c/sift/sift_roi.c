@@ -62,6 +62,16 @@ int main(int c, char *v[])
     {
         fprintf(stderr, "ERROR : can't open %s\n", v[1]);
     }
+    
+    //Clipping
+    int sizeX = GDALGetRasterXSize( hDataset );
+    int sizeY = GDALGetRasterYSize( hDataset );
+    if (x<0) x=0;
+    if (y<0) y=0;
+    if (!(x+w < sizeX))
+        w=sizeX-x-1;
+    if (!(y+h < sizeY))
+        h=sizeY-y-1;
        
     GDALRasterBandH hBand;
     hBand = GDALGetRasterBand( hDataset, 1 );
