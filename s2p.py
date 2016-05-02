@@ -395,7 +395,7 @@ def list_jobs(config_file, step):
     
     if step in [2,4]:           #preprocessing, processing
         f = open(os.path.join(cfg['out_dir'],filename),'w')
-        for tile in tilesFullInfo:
+        for tile in tiles_full_info:
             tile_dir = tile['directory']
             f.write(tile_dir + ' ' + str(step) + '\n')
         f.close()
