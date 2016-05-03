@@ -59,8 +59,15 @@ int main(int c, char *v[]) {
     //Clipping
     int sizeX = GDALGetRasterXSize( hDataset );
     int sizeY = GDALGetRasterYSize( hDataset );
-    if (x<0) x=0;
-    if (y<0) y=0;
+    
+    if (x < 0) {
+        w += x;
+        x = 0;
+    }
+    if (y < 0) {
+        h += y;
+        y = 0;
+    }
     if (!(x+w < sizeX))
         w=sizeX-x-1;
     if (!(y+h < sizeY))
