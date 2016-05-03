@@ -55,31 +55,26 @@ int main(int c, char *v[]) {
         fprintf(stderr, "ERROR: can't open %s\n", v[1]);
         return 1;
     }
+    
+    //Clipping
+    int sizeX = GDALGetRasterXSize( hDataset );
+    int sizeY = GDALGetRasterYSize( hDataset );
+    if (x<0) x=0;
+    if (y<0) y=0;
+    if (!(x+w < sizeX))
+        w=sizeX-x-1;
+    if (!(y+h < sizeY))
+        h=sizeY-y-1;
+       
+    GDALRasterBandH hBand;
+    hBand = GDALGetRasterBand( hDataset, 1 );
+    float *roi;
+    roi = (float *) CPLMalloc(sizeof(float)*w*h);
+    GDALRasterIO( hBand, GF_Read, x, y, w, h, 
+              roi, w, h, GDT_Float32, 
+              0, 0 );
 
-    // clip roi to stay inside the image boundaries
-    if (x < 0) {
-        x = 0;
-        w += x;
-    }
-    if (y < 0) {
-        y = 0;
-        h += y;
-    }
-    int size_x = GDALGetRasterXSize(hDataset);
-    int size_y = GDALGetRasterYSize(hDataset);
-    if (x + w > size_x)
-        w = size_x - x;
-    if (y + h > size_y)
-        h = size_y - y;
-    if (w <= 0 || h <= 0) {
-        fprintf(stderr, "WARNING: empty roi\n");
-        return 0;
-    }
 
-    // read roi
-    GDALRasterBandH hBand = GDALGetRasterBand(hDataset, 1);
-    float *roi = (float *) CPLMalloc(sizeof(float)*w*h);
-    GDALRasterIO(hBand, GF_Read, x, y, w, h, roi, w, h, GDT_Float32, 0, 0);
     GDALClose(hBand);
     GDALClose(hDataset);
     if (verbose) print_elapsed_time(&ts, "read ROI", 35);
