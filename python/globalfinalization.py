@@ -124,6 +124,7 @@ def write_dsm(tiles_full_info):
                (final_dsm, dsm_pieces))
 
 
+
 def lidar_preprocessor(output, input_plys):
     """
     Compute a multi-scale representation of a large point cloud.
