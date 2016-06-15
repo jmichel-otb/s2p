@@ -56,9 +56,9 @@ int main(int c, char *v[]) {
         return 1;
     }
 
-    //Clipping
-    int sizeX = GDALGetRasterXSize( hDataset );
-    int sizeY = GDALGetRasterYSize( hDataset );
+    // clip roi to stay inside the image boundaries
+    int size_x = GDALGetRasterXSize( hDataset );
+    int size_y = GDALGetRasterYSize( hDataset );
     
     if (x < 0) {
         w += x;
@@ -68,10 +68,15 @@ int main(int c, char *v[]) {
         h += y;
         y = 0;
     }
-    if (!(x+w < sizeX))
-        w=sizeX-x-1;
-    if (!(y+h < sizeY))
-        h=sizeY-y-1;
+    
+    if (x + w > size_x)
+        w = size_x - x;
+    if (y + h > size_y)
+        h = size_y - y;
+    if (w <= 0 || h <= 0) {
+        fprintf(stderr, "WARNING: empty roi\n");
+        return 0;
+    }
        
     GDALRasterBandH hBand;
     hBand = GDALGetRasterBand( hDataset, 1 );

@@ -120,6 +120,9 @@ int main(int c, char* v[])
     }
     
     // clip roi to stay inside the image boundaries
+    int size_x = poDataset->GetRasterXSize();
+    int size_y = poDataset->GetRasterYSize();
+    
     if (x < 0) {
         w += x;
         x = 0;
@@ -128,15 +131,14 @@ int main(int c, char* v[])
         h += y;
         y = 0;
     }
-    int size_x = poDataset->GetRasterXSize();
-    int size_y = poDataset->GetRasterYSize();
-    if (x + w >= size_x)
-        w = size_x - x -1;
-    if (y + h >= size_y)
-        h = size_y - y -1;
+
+    if (x + w > size_x)
+        w = size_x - x;
+    if (y + h > size_y)
+        h = size_y - y;
     if (w <= 0 || h <= 0) {
-        fprintf(stderr, "WARNING: empty roi\n");
-        return 1;
+        fprintf(stderr, "ERROR: empty roi\n");
+        return EXIT_FAILURE;
     }
     
     //read roi
