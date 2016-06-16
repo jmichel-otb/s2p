@@ -120,9 +120,7 @@ def write_dsm(tiles_full_info):
     
     dsm_pieces = os.path.join(cfg['out_dir'],'dsm/dsm_*')
     final_dsm = os.path.join(cfg['out_dir'],'dsm.vrt')
-    common.run("gdalbuildvrt %s %s" %
-               (final_dsm, dsm_pieces))
-
+    common.run("gdalbuildvrt %s %s" % (final_dsm, dsm_pieces))
 
 
 def lidar_preprocessor(output, input_plys):

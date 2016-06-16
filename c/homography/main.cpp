@@ -112,6 +112,9 @@ int main(int c, char* v[])
     }
 
     // clip roi to stay inside the image boundaries
+    int size_x = poDataset->GetRasterXSize();
+    int size_y = poDataset->GetRasterYSize();
+    
     if (x < 0) {
         w += x;
         x = 0;
@@ -120,8 +123,7 @@ int main(int c, char* v[])
         h += y;
         y = 0;
     }
-    int size_x = poDataset->GetRasterXSize();
-    int size_y = poDataset->GetRasterYSize();
+
     if (x + w > size_x)
         w = size_x - x;
     if (y + h > size_y)
