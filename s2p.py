@@ -134,18 +134,10 @@ def process_tile_pair(tile_info, pair_id):
 
     out_dir = os.path.join(tile_dir, 'pair_%d' % pair_id)
 
-    
-    
     A_global = os.path.join(cfg['out_dir'],
                             'global_pointing_pair_%d.txt' % pair_id)
 
     print 'processing tile %d %d...' % (col, row)
-
-    # check that the tile is not masked
-    if os.path.isfile(os.path.join(out_dir, 'this_tile_is_masked.txt')):
-        print 'tile %s already masked, skip' % out_dir
-        return
-    
     # rectification
     if (cfg['skip_existing'] and
         os.path.isfile(os.path.join(out_dir, 'rectified_ref.tif')) and
@@ -204,11 +196,7 @@ def process_tile(tile_info):
             process_tile_pair(tile_info, pair_id)
 
         # finalization
-        height_maps = []
-        
-        for i in range(1,nb_pairs+1):
-            if not os.path.isfile(os.path.join(tile_dir, 'pair_%d' % i, 'this_tile_is_masked.txt')):
-                height_maps.append(os.path.join(tile_dir, 'pair_%d' % i, 'height_map.tif'))
+        height_maps = [os.path.join(tile_dir, 'pair_%d' % i, 'height_map.tif') for i in range(1, nb_pairs + 1)]
         process.finalize_tile(tile_info, height_maps)
         
         # ply extrema
@@ -257,11 +245,11 @@ def compute_dsm(args):
     Compute the DSMs
 
     Args: 
-         - args  ( <==> [number_of_tiles,current_tile])
+         - args  ( <==> [config_file,number_of_tiles,current_tile])
     """
     list_of_tiles_dir = os.path.join(cfg['out_dir'],'list_of_tiles.txt')
    
-    number_of_tiles,current_tile = args
+    config_file,number_of_tiles,current_tile = args
     
     dsm_dir = os.path.join(cfg['out_dir'],'dsm')
     out_dsm = os.path.join(dsm_dir,'dsm_%d.tif' % (current_tile) )
@@ -277,15 +265,35 @@ def compute_dsm(args):
     ymin = global_ymin + current_tile*tile_y_size
     ymax = ymin + tile_y_size
     
+    # cutting info
+    x,y,w,h,z,ov,tw,th,nb_pairs = initialization.cutting(config_file)
+    range_y = np.arange(y, y + h - ov, th - ov)
+    range_x = np.arange(x, x + w - ov, tw - ov)
+    colmin, rowmin, tw, th = common.round_roi_to_nearest_multiple(z, range_x[0], range_y[0], tw, th)
+    colint, rowint, tw, th = common.round_roi_to_nearest_multiple(z, range_x[1], range_y[1], tw, th)
+    colmax, rowmax, tw, th = common.round_roi_to_nearest_multiple(z, range_x[-1], range_y[-1], tw, th)
+    cutsinf = '%d %d %d %d %d %d %d %d' % (rowmin,rowint-rowmin,rowmax,colmin,colint-colmin,colmax,tw,th)
+    
+    flags={}
+    flags['average-orig']=0
+    flags['average']=1
+    flags['variance']=2
+    flags['min']=3
+    flags['max']=4
+    flags['median']=5
+    flag = "-flag %d" % ( flags.get(cfg['dsm_option'],0) )
+    
     if (ymax <= global_ymax):
-        common.run("plytodsm %f %s %s %f %f %f %f" % ( 
+        common.run("plytodsm %s %f %s %f %f %f %f %s %s" % ( 
+                                                 flag,
                                                  cfg['dsm_resolution'], 
                                                  out_dsm, 
-                                                 list_of_tiles_dir,
                                                  global_xmin,
                                                  global_xmax,
                                                  ymin,
-                                                 ymax))
+                                                 ymax,
+                                                 cutsinf,
+                                                 cfg['out_dir']))
                                                  
                                              
 def global_finalization(tiles_full_info):
@@ -343,14 +351,9 @@ def launch_parallel_calls(fun, list_of_args, nb_workers):
         except common.RunFailure as e:
             print "FAILED call: ", e.args[0]["command"]
             print "\toutput: ", e.args[0]["output"]
-        except ValueError as e:
-            print traceback.format_exc()
-            print str(r)
-            pass
         except KeyboardInterrupt:
             pool.terminate()
             sys.exit(1)
-        
 
 
 
@@ -394,7 +397,7 @@ def execute_job(config_file,params):
         if step == 6:#"compute_dsm" :
             print 'compute_dsm ...'
             current_tile=int(tile_dir.split('_')[1]) # for instance, dsm_2 becomes 2
-            compute_dsm([cfg['dsm_nb_tiles'],current_tile])
+            compute_dsm([config_file,cfg['dsm_nb_tiles'],current_tile])
             
         if step == 7:#"global_finalization":    
             print 'global finalization...'     
@@ -468,7 +471,7 @@ def main(config_file, step=None, clusterMode=None, misc=None):
         # initialization (has to be done whatever the queried steps)
         initialization.init_dirs_srtm(config_file)
         tiles_full_info = initialization.init_tiles_full_info(config_file)
-        
+        print_elapsed_time.t0 = datetime.datetime.now()
 
         # multiprocessing setup
         nb_workers = multiprocessing.cpu_count()  # nb of available cores
@@ -506,7 +509,7 @@ def main(config_file, step=None, clusterMode=None, misc=None):
             print '\ncompute dsm...'
             args=[]
             for i in range(cfg['dsm_nb_tiles']):
-                args.append([cfg['dsm_nb_tiles'],i])
+                args.append([config_file,cfg['dsm_nb_tiles'],i])
             show_progress.total = cfg['dsm_nb_tiles']
             launch_parallel_calls(compute_dsm,args,nb_workers)
             print_elapsed_time()
