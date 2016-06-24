@@ -72,9 +72,13 @@ directory containing all the needed binaries.
 ## Dependencies
 
 Required dependencies: `cmake, libtiff, libpng, libjpeg, libfftw3, libgeotiff,
-gdal`. These can be installed on Debian 7 (wheezy) with
+gdal`, and the Python module `utm`. These can be installed on Debian 7 (wheezy) with
 
     apt-get install cmake libfftw3-dev libtiff5-dev libgeotiff-dev gdal-bin
+
+and
+
+    pip install utm
 
 `gdal` version must be 1.10 or newer. Comments about dependencies that were
 required in previous versions of `s2p` are still here just in case.
@@ -96,6 +100,15 @@ folder with a bunch of executables in it, among with 'MICMAC' and 'mm3d') in
 the 'bin' folder:
 
     ln -s PATH_TO_YOUR_MICMAC_DIR bin/micmac
+
+### The NASA Ames Stereo Pipeline (ASP) (optional)
+### http://ti.arc.nasa.gov/tech/asr/intelligent-robotics/ngt/stereo/
+
+If you want to use ASP for the stereo matching step, you must install it (or
+download binaries) and add the bin folder (containing the executables 'stereo_corr',
+'stereo_rfne' and 'stereo_fltr') to PATH environment variable:
+
+    export PATH=PATH_TO_YOUR_ASP_BIN_DIR:$PATH
 
 ### Old dependencies. Not required anymore
 

@@ -103,22 +103,14 @@ int main(int c, char* v[])
     int h = roi_coords[3];
     //fprintf(stderr, "roi %d %d %d %d\n", x, y, w, h);
 
-    // compensate the homography for the translation due to the crop
-    double translation[9] = {1, 0, (double) x, 0, 1, (double) y, 0, 0, 1};
-    double hom_compensated[9];
-    matrix_33_product(hom_compensated, hom, translation);
-    if (verbose) time.get_time("Compute needed ROI");
-
-    // read the needed ROI in the input image
-    GDALDataset  *poDataset;
+    // open the input image
     GDALAllRegister();
-    poDataset = (GDALDataset *) GDALOpen( fname_input, GA_ReadOnly );
-    if( poDataset == NULL )
-    {
+    GDALDataset *poDataset = (GDALDataset *) GDALOpen(fname_input, GA_ReadOnly);
+    if (poDataset == NULL) {
         fprintf(stderr, "ERROR: can't open %s\n", fname_input);
-        return 1;
+        return EXIT_FAILURE;
     }
-    
+
     // clip roi to stay inside the image boundaries
     int size_x = poDataset->GetRasterXSize();
     int size_y = poDataset->GetRasterYSize();
@@ -140,18 +132,22 @@ int main(int c, char* v[])
         fprintf(stderr, "ERROR: empty roi\n");
         return EXIT_FAILURE;
     }
-    
-    //read roi
-    GDALRasterBand *poBand = poDataset->GetRasterBand( 1 );
+
+    // compensate the homography for the translation due to the crop
+    double translation[9] = {1, 0, (double) x, 0, 1, (double) y, 0, 0, 1};
+    double hom_compensated[9];
+    matrix_33_product(hom_compensated, hom, translation);
+    if (verbose) time.get_time("Compute needed ROI");
+
+    // read the needed ROI in the input image
+    GDALRasterBand *poBand = poDataset->GetRasterBand(1);
     float *roi = (float *) CPLMalloc(sizeof(float)*w*h);
-    int errorRasterIO = poBand->RasterIO( GF_Read, x, y, w, h, roi, w, h, GDT_Float32, 0, 0);
+    int errorRasterIO = poBand->RasterIO(GF_Read, x, y, w, h, roi, w, h, GDT_Float32, 0, 0);
     if (errorRasterIO != CPLE_None)
-       fprintf(stderr, "errorRasterIO = %d\n",errorRasterIO);
-    GDALClose( (GDALDatasetH) poDataset );
-    
-    if (verbose) time.get_time("Read needed ROI");
+       fprintf(stderr, "errorRasterIO = %d\n", errorRasterIO);
+    GDALClose((GDALDatasetH) poDataset);
     Image imI(roi, (const size_t) w, (const size_t) h, 1);
-    if (verbose) time.get_time("Copy ROI to an Image instance");
+    if (verbose) time.get_time("Read needed ROI");
 
     // call the mapping function
     Image imO;
@@ -162,7 +158,7 @@ int main(int c, char* v[])
     // write the output image
     imO.write(fname_output);
     if (verbose) time.get_time("Write image");
-    
+
      // cleanup
     CPLFree(roi);
 

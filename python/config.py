@@ -69,6 +69,9 @@ cfg['epipolar_thresh'] = 0.5
 # hirschmuller08_laplacian', 'sgbm', 'mgm'
 cfg['matching_algorithm'] = 'mgm'
 
+# switch to False to disable epipolar rectification and rectify the secondary tile only
+cfg['epipolar_rectification'] = True
+
 # blur pleiades images before stereo matching
 cfg['use_pleiades_unsharpening'] = True
 
@@ -103,9 +106,13 @@ cfg['mosaic_method'] = 'piio'
 
 # url of the srtm database mirror
 #cfg['srtm_url'] = 'http://138.231.80.250:443/srtm/tiff'
-cfg['srtm_url'] = 'ftp://xftp.jrc.it/pub/srtmV4/tiff'
+#cfg['srtm_url'] = 'ftp://xftp.jrc.it/pub/srtmV4/tiff'
+cfg['srtm_url'] = 'http://data_public:GDdci@data.cgiar-csi.org/srtm/tiles/GeoTIFF'
 
 # directory where to store the srtm tiles
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 cfg['srtm_dir'] = os.path.join(parent_dir, '.srtm')
+
+# DSM options
+cfg['dsm_option'] = 'median'

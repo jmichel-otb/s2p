@@ -384,7 +384,7 @@ int main(int c, char *v[])
 	       {
 		  fscanf(ply_extrema_file, "%f %f %f %f", &local_xmin, &local_xmax, &local_ymin, &local_ymax);
 		  fclose(ply_extrema_file);
-		  
+
 		  // Only add ply files that intersect the extent specified by [xmin xmax ymin ymax]
 		  // The test below simply tells whether two rectancles overlap
 		  if ( (local_xmin <= xmax) && (local_xmax >= xmin) && (local_ymin <= ymax) && (local_ymax >= ymin) )
@@ -407,9 +407,7 @@ int main(int c, char *v[])
 	       }
 	       else
 		    fprintf(stderr,"WARNING 1 : can not open file %s\n",ply_extrema);
-
 	    } //end for loops
-		
 		
 	if (nbply_pushed == 0)
 	{
@@ -425,8 +423,8 @@ int main(int c, char *v[])
 	struct images x;
 	x.w = w;
 	x.h = h;
-	x.cnt = xmalloc(w*h*sizeof(float));
-	x.pixel_value = xmalloc(w*h*sizeof(float));
+	x.cnt = xmalloc((uint64_t) w*h*sizeof(float));
+	x.pixel_value = xmalloc((uint64_t) w*h*sizeof(float));
 	if (flag != 0)
 	    x.heights = xmalloc(w*h*sizeof(float *));
 	for (uint64_t i = 0; i < (uint64_t) w*h; i++)

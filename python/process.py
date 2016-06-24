@@ -87,7 +87,7 @@ def color_crop_ref(tile_info, clr=None):
                                                     applied_minmax_arr[1])
 
 
-def generate_cloud(tile_info, do_offset=False):
+def generate_cloud(tile_info, do_offset=False, utm_zone=None):
     """
     Args:
         tile_info: a dictionary that provides all you need to process a tile
@@ -97,6 +97,7 @@ def generate_cloud(tile_info, do_offset=False):
             numbers)
     """
     print "\nComputing point cloud..."
+
     # get info
     tile_dir = tile_info['directory']
     x, y, w, h = tile_info['coordinates']
@@ -137,7 +138,7 @@ def generate_cloud(tile_info, do_offset=False):
     cloud = tile_dir + '/cloud.ply'
 
     triangulation.compute_point_cloud(cloud, height_map, rpc1, trans, crop_color,
-                                      off_x, off_y)
+                                      off_x, off_y, utm_zone=utm_zone)
 
     common.garbage_cleanup()
 
@@ -185,7 +186,7 @@ def merge_height_maps(height_maps, tile_dir, thresh, conservative, k=1, garbage=
                 common.run('rm -f %s' % imtemp)
 
 
-def finalize_tile(tile_info, height_maps):
+def finalize_tile(tile_info, height_maps, utm_zone=None):
     """
     Finalize the processing of a tile.
 
@@ -266,7 +267,7 @@ def finalize_tile(tile_info, height_maps):
     color_crop_ref(tile_info, cfg['images'][0]['clr'])
 
     # generate cloud
-    generate_cloud(tile_info, cfg['offset_ply'])
+    generate_cloud(tile_info, cfg['offset_ply'], utm_zone)
 
 
 def rectify(out_dir, A_global, img1, rpc1, img2, rpc2, x=None, y=None,
@@ -372,15 +373,22 @@ def disparity(out_dir, img1, rpc1, img2, rpc2, x=None, y=None,
     disp_min_max = '%s/disp_min_max.txt' % out_dir
     config = '%s/config.json' % out_dir
 
+    # verifing non-epipolar_rectification is possible
+    algo = cfg['matching_algorithm']
+    if algo not in ['asp']:
+        cfg['epipolar_rectification'] = True
+
     # disparity (block-matching)
     disp_min, disp_max = np.loadtxt(disp_min_max)
 
-    if cfg['disp_min'] is not None:
-        disp_min = cfg['disp_min']
-    if cfg['disp_max'] is not None:
-        disp_max = cfg['disp_max']
+    if cfg['epipolar_rectification']:
+        if cfg['disp_min'] is not None:
+            disp_min = cfg['disp_min']
+        if cfg['disp_max'] is not None:
+            disp_max = cfg['disp_max']
+
     block_matching.compute_disparity_map(rect1, rect2, disp, mask,
-                                         cfg['matching_algorithm'], disp_min,
+                                         algo, disp_min,
                                          disp_max)
 
     # intersect mask with the cloud_water_image_domain mask (recomputed here to
