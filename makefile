@@ -64,7 +64,7 @@ asift:
 
 homography: $(BINDIR)
 	mkdir -p $(BINDIR)/build_homography
-	cd $(BINDIR)/build_homography; cmake ../../c/homography; $(MAKE)
+	cd $(BINDIR)/build_homography; cmake -D CMAKE_BUILD_TYPE=Release ../../c/homography; $(MAKE)
 	cp $(BINDIR)/build_homography/homography $(BINDIR)
 
 sift: $(BINDIR)
