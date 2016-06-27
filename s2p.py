@@ -285,8 +285,18 @@ def compute_dsm(args):
     ymin = global_ymin + current_tile*tile_y_size
     ymax = ymin + tile_y_size
     
+    flags={}
+    flags['average-orig']=0
+    flags['average']=1
+    flags['variance']=2
+    flags['min']=3
+    flags['max']=4
+    flags['median']=5
+    flag = "-flag %d" % ( flags.get(cfg['dsm_option'],0) )
+    
     if (ymax <= global_ymax):
-        common.run("plytodsm %f %s %s %f %f %f %f" % ( 
+        common.run("plytodsm %s %f %s %s %f %f %f %f" % ( 
+                                                 flag,
                                                  cfg['dsm_resolution'], 
                                                  out_dsm, 
                                                  list_of_tiles_dir,
@@ -465,6 +475,7 @@ def main(config_file, step=None, clusterMode=None, misc=None):
         step: integer between 1 and 5 specifying which step to run. Default
         value is None. In that case all the steps are run.
     """    
+    print_elapsed_time.t0 = datetime.datetime.now()
 
     print_elapsed_time.t0 = datetime.datetime.now()
 
@@ -480,7 +491,6 @@ def main(config_file, step=None, clusterMode=None, misc=None):
         # initialization (has to be done whatever the queried steps)
         initialization.init_dirs_srtm(config_file)
         tiles_full_info = initialization.init_tiles_full_info(config_file)
-        
 
         # multiprocessing setup
         nb_workers = multiprocessing.cpu_count()  # nb of available cores
