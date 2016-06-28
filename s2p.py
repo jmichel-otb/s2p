@@ -488,6 +488,8 @@ def main(config_file, step=None, clusterMode=None, misc=None):
         initialization.init_dirs_srtm(config_file)
         tiles_full_info = initialization.init_tiles_full_info(config_file)
 
+        print_elapsed_time.t0 = datetime.datetime.now()
+
         # multiprocessing setup
         nb_workers = multiprocessing.cpu_count()  # nb of available cores
         if cfg['max_nb_threads']:
