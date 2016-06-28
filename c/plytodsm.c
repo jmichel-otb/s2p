@@ -370,6 +370,7 @@ int main(int c, char *v[])
 	
 	// From the list of tiles, find each ply file
 	uint64_t nbply_pushed=0;
+
 	int row,col;
 	for(row=rowmin;row<=rowmax;row+=steprow)
 	    for(col=colmin;col<=colmax;col+=stepcol)
@@ -403,7 +404,6 @@ int main(int c, char *v[])
 			else
 			    fprintf(stderr, "WARNING 2 : can not open file \"%s\"\n", ply);
 		   }
-		  
 	       }
 	       else
 		    fprintf(stderr,"WARNING 1 : can not open file %s\n",ply_extrema);
@@ -427,6 +427,7 @@ int main(int c, char *v[])
 	x.pixel_value = xmalloc((uint64_t) w*h*sizeof(float));
 	if (flag != 0)
 	    x.heights = xmalloc(w*h*sizeof(float *));
+
 	for (uint64_t i = 0; i < (uint64_t) w*h; i++)
 	{
 		x.cnt[i] = 0;
