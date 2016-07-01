@@ -274,7 +274,16 @@ def compute_dsm(args):
     
     # horizontal cuts
     ymin = global_ymin + current_tile*tile_y_size
-    ymax = ymin + tile_y_size
+    ymax = ymin + tile_y_size #+ 2*cfg['dsm_radius']*cfg['dsm_resolution']
+    
+    # cutting info
+    x,y,w,h,z,ov,tw,th,nb_pairs = initialization.cutting(config_file)
+    range_y = np.arange(y, y + h - ov, th - ov)
+    range_x = np.arange(x, x + w - ov, tw - ov)
+    colmin, rowmin, tw, th = common.round_roi_to_nearest_multiple(z, range_x[0], range_y[0], tw, th)
+    colint, rowint, tw, th = common.round_roi_to_nearest_multiple(z, range_x[1], range_y[1], tw, th)
+    colmax, rowmax, tw, th = common.round_roi_to_nearest_multiple(z, range_x[-1], range_y[-1], tw, th)
+    cutsinf = '%d %d %d %d %d %d %d %d' % (rowmin,rowint-rowmin,rowmax,colmin,colint-colmin,colmax,tw,th)
     
     # cutting info
     x,y,w,h,z,ov,tw,th,nb_pairs = initialization.cutting(config_file)
@@ -292,19 +301,28 @@ def compute_dsm(args):
     flags['min']=3
     flags['max']=4
     flags['median']=5
+    flags['interpol-asympt']=6
+    flags['interpol-gauss']=7
+    flags['interpol-sigmoid']=8
     flag = "-flag %d" % ( flags.get(cfg['dsm_option'],0) )
+    radius = "-radius %d" % ( cfg['dsm_radius'] )
+    pinterp = "-pinterp %d" % ( cfg['dsm_pinterp'] )
+    minnonan = "-minnonan %d" % ( cfg['dsm_min_nonan'] )
     
     if (ymax <= global_ymax):
-        common.run("plytodsm %s %f %s %f %f %f %f %s %s" % ( 
-                                                 flag,
-                                                 cfg['dsm_resolution'], 
-                                                 out_dsm, 
-                                                 global_xmin,
-                                                 global_xmax,
-                                                 ymin,
-                                                 ymax,
-                                                 cutsinf,
-                                                 cfg['out_dir']))
+        common.run("plytodsm %s %s %s %s %f %s %f %f %f %f %s %s" % ( 
+                                                 flag,    #%s
+                                                 radius,  #%s
+                                                 pinterp, #%s
+                                                 minnonan, #%s
+                                                 cfg['dsm_resolution'], #%f
+                                                 out_dsm, #%s
+                                                 global_xmin, #%f
+                                                 global_xmax, #%f
+                                                 ymin, #%f
+                                                 ymax, #%f
+                                                 cutsinf, #%s
+                                                 cfg['out_dir'])) #%s
                                                  
                                              
 def global_finalization(tiles_full_info):

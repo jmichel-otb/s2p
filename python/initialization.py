@@ -298,19 +298,5 @@ def init_tiles_full_info(config_file):
 
     if len(tiles_full_info) == 1:
         tiles_full_info[0]['position_type'] = 'Single'
-
-    #List of tiles
-    list_of_tiles=open(os.path.join(cfg['out_dir'],'list_of_tiles.txt'),'w')
-    for tile_info in tiles_full_info:
-        list_of_tiles.write( '%s\n' % (tile_info['directory']))
-    list_of_tiles.close()
-    
-    #How tiles are cut
-    colmin, rowmin, tw, th = common.round_roi_to_nearest_multiple(z, range_x[0], range_y[0], tw, th)
-    colint, rowint, tw, th = common.round_roi_to_nearest_multiple(z, range_x[1], range_y[1], tw, th)
-    colmax, rowmax, tw, th = common.round_roi_to_nearest_multiple(z, range_x[-1], range_y[-1], tw, th)
-    cutting_info=open(os.path.join(cfg['out_dir'],'cutting_info.txt'),'w')
-    cutting_info.write( '%d %d %d %d %d %d %d %d\n' % (rowmin,rowint-rowmin,rowmax,colmin,colint-colmin,colmax,tw,th))
-    cutting_info.close()
-    
+   
     return tiles_full_info
