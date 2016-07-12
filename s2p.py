@@ -283,9 +283,8 @@ def compute_dsm(args):
     range_y = np.arange(y, y + h - ov, th - ov)
     range_x = np.arange(x, x + w - ov, tw - ov)
     colmin, rowmin, tw, th = common.round_roi_to_nearest_multiple(z, range_x[0], range_y[0], tw, th)
-    colint, rowint, tw, th = common.round_roi_to_nearest_multiple(z, range_x[1], range_y[1], tw, th)
     colmax, rowmax, tw, th = common.round_roi_to_nearest_multiple(z, range_x[-1], range_y[-1], tw, th)
-    cutsinf = '%d %d %d %d %d %d %d %d' % (rowmin, rowint-rowmin, rowmax, colmin, colint - colmin, colmax, tw, th)
+    cutsinf = '%d %d %d %d %d %d %d %d' % (rowmin, th - ov, rowmax, colmin, tw - ov, colmax, tw, th)
 
     flags={}
     flags['average-orig']=0
