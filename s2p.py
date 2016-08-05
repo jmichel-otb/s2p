@@ -292,24 +292,35 @@ def compute_dsm(args):
     colmax, rowmax, tw, th = common.round_roi_to_nearest_multiple(z, range_x[-1], range_y[-1], tw, th)
     cutsinf = '%d %d %d %d %d %d %d %d' % (rowmin, th - ov, rowmax, colmin, tw - ov, colmax, tw, th)
 
-    flags = {}
-    flags['average-orig'] = 0
-    flags['average'] = 1
-    flags['variance'] = 2
-    flags['min'] = 3
-    flags['max'] = 4
-    flags['median'] = 5
-    flag = "-flag %d" % (flags.get(cfg['dsm_option'], 0))
+    flags={}
+    flags['average-orig']=0
+    flags['average']=1
+    flags['variance']=2
+    flags['min']=3
+    flags['max']=4
+    flags['median']=5
+    flags['interpol-asympt']=6
+    flags['interpol-gauss']=7
+    flags['interpol-sigmoid']=8
+    flag = "-flag %d" % ( flags.get(cfg['dsm_option'],0) )
+    radius = "-radius %d" % ( cfg['dsm_radius'] )
+    pinterp = "-pinterp %d" % ( cfg['dsm_pinterp'] )
+    minnonan = "-minnonan %d" % ( cfg['dsm_min_nonan'] )
 
     if (ymax <= global_ymax):
-        common.run("plytodsm %s %f %s %f %f %f %f %s %s" % (flag,
-                                                            cfg['dsm_resolution'],
-                                                            out_dsm,
-                                                            global_xmin,
-                                                            global_xmax, ymin,
-                                                            ymax, cutsinf,
-                                                            cfg['out_dir']))
-
+        common.run("plytodsm %s %s %s %s %f %s %f %f %f %f %s %s" % (
+                                                 flag,    #%s
+                                                 radius,  #%s
+                                                 pinterp, #%s
+                                                 minnonan, #%s
+                                                 cfg['dsm_resolution'], #%f
+                                                 out_dsm, #%s
+                                                 global_xmin, #%f
+                                                 global_xmax, #%f
+                                                 ymin, #%f
+                                                 ymax, #%f
+                                                 cutsinf, #%s
+                                                 cfg['out_dir'])) #%s
 
 def global_finalization(tiles_full_info):
     """

@@ -7,6 +7,7 @@
 import numpy as np
 from config import cfg
 import os
+import shutil
 import sys
 import multiprocessing
 
@@ -19,21 +20,21 @@ from python import rectification
 from python import masking
 
 
-def color_crop_ref(tile_info, clr=None):
+def color_crop_ref(tile_info, crop_ref, clr=None):
     """
     Colorizations of a crop_ref (for a given tile)
 
     Args:
-        tile_info: a dictionary that provides all you need to process a tile
-        clr (optional): if crop_ref is a pan image, will perform the pansharpening with the color image clr
+    tile_info: a dictionary that provides all you need to process a tile
+    clr (optional): if crop_ref is a pan image, will perform the pansharpening with the color image clr
 
-        If clr is None then:
-            case 1: tile is an RGBI image, so removes I channel, and perform rescaling of the remaining channels
-            case 2: tile is already an RGB image, so just perform rescaling
+    If clr is None then:
+    case 1: tile is an RGBI image, so removes I channel, and perform rescaling of the remaining channels
+    case 2: tile is already an RGB image, so just perform rescaling
 
-        Note that if rescaling is already performed, then the file applied_minmax.txt exists:
-            if applied_minmax.txt exists and cfg['skip_existing'] is True, rescaling won't be performed again
-            if applied_minmax.txt exists and is different from global_minmax, rescaling will be compulsorily performed (can occur if a new tile is added)
+    Note that if rescaling is already performed, then the file applied_minmax.txt exists:
+    if applied_minmax.txt exists and cfg['skip_existing'] is True, rescaling won't be performed again
+    if applied_minmax.txt exists and is different from global_minmax, rescaling will be compulsorily performed (can occur if a new tile is added)
     """
     # get info
     x, y, w, h = tile_info['coordinates']
@@ -90,11 +91,11 @@ def color_crop_ref(tile_info, clr=None):
 def generate_cloud(tile_info, do_offset=False, utm_zone=None):
     """
     Args:
-        tile_info: a dictionary that provides all you need to process a tile
-        do_offset (optional, default: False): boolean flag to decide wether the
-            x, y coordinates of points in the ply file will be translated or not
-            (translated to be close to 0, to avoid precision loss due to huge
-            numbers)
+    tile_info: a dictionary that provides all you need to process a tile
+    do_offset (optional, default: False): boolean flag to decide wether the
+    x, y coordinates of points in the ply file will be translated or not
+    (translated to be close to 0, to avoid precision loss due to huge
+    numbers)
     """
     print "\nComputing point cloud..."
 
@@ -151,6 +152,7 @@ def finalize_tile(tile_info, utm_zone=None):
 
     Args:
         tile_info: a dictionary that provides all you need to process a tile
+
     """
     ## get info
     tile_dir = tile_info['directory']
@@ -195,13 +197,12 @@ def finalize_tile(tile_info, utm_zone=None):
     if not (os.path.isfile(rpc_err_crop) and cfg['skip_existing']):
         common.cropImage(rpc_err, rpc_err_crop,
                          newcol, newrow, w, h)
-    if not (os.path.isfile(crop_ref_crop) and cfg['skip_existing']):
-        common.cropImage(crop_ref, crop_ref_crop, newcol, newrow, w, h)
+    common.cropImage(crop_ref, crop_ref_crop, newcol, newrow, w, h)
 
     # colors
     color_crop_ref(tile_info, cfg['images'][0]['clr'])
     
-    ## Generate cloud
+    # Generate cloud
     generate_cloud(tile_info, cfg['offset_ply'], utm_zone)
 
 
@@ -224,7 +225,7 @@ def rectify(tile_dir, A_global, img1, rpc1, img2, rpc2, x=None, y=None,
         prv1 (optional): path to a preview of the reference image.
 
     Returns:
-        nothing
+    nothing
     """
     # output files
     rect1 = os.path.join(tile_dir,'rectified_ref.tif')
@@ -285,7 +286,7 @@ def disparity(tile_dir, img1, rpc1, img2, rpc2, x=None, y=None,
         wat_msk (optional): path to a tiff file containing a water mask.
 
     Returns:
-        nothing
+    nothing
     """
     # output files
     rect1 = os.path.join(tile_dir,'rectified_ref.tif')
@@ -304,15 +305,22 @@ def disparity(tile_dir, img1, rpc1, img2, rpc2, x=None, y=None,
     disp_min_max = os.path.join(tile_dir,'disp_min_max.txt')
     config = os.path.join(tile_dir,'config.json')
 
+    # verifing non-epipolar_rectification is possible
+    algo = cfg['matching_algorithm']
+    if algo not in ['asp']:
+        cfg['epipolar_rectification'] = True
+
     # disparity (block-matching)
     disp_min, disp_max = np.loadtxt(disp_min_max)
 
-    if cfg['disp_min'] is not None:
-        disp_min = cfg['disp_min']
-    if cfg['disp_max'] is not None:
-        disp_max = cfg['disp_max']
+    if cfg['epipolar_rectification']:
+        if cfg['disp_min'] is not None:
+            disp_min = cfg['disp_min']
+        if cfg['disp_max'] is not None:
+            disp_max = cfg['disp_max']
+
     block_matching.compute_disparity_map(rect1, rect2, disp, mask,
-                                         cfg['matching_algorithm'], disp_min,
+                                         algo, disp_min,
                                          disp_max)
 
     # intersect mask with the cloud_water_image_domain mask (recomputed here to
@@ -337,7 +345,6 @@ def triangulate(tile_info, prv1=None, A=None):
         tile_info : a dictionary that provides all you need to process a tile
         prv1 (optional): path to a preview of the reference image
         #A (optional, default None): pointing correction matrix.
-
     """
     # get info
     col, row, tw, th = tile_info['coordinates']

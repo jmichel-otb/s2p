@@ -299,6 +299,5 @@ def init_tiles_full_info(config_file):
 
     if len(tiles_full_info) == 1:
         tiles_full_info[0]['position_type'] = 'Single'
-
-    
+   
     return tiles_full_info
