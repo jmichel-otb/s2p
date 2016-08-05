@@ -126,3 +126,9 @@ cfg['dsm_pinterp'] = 1
 # DSM minimum number of no-Nan cells around 
 # a cell to actually interpolate it
 cfg['dsm_min_nonan'] = 0
+
+# Tells whether we only want height_map.vrt 
+# and rpc_err.vrt (False) or some other
+# vrt product, sucha asnb of views per pixel, 
+# and so on... (True).
+cfg['full_vrt'] = True

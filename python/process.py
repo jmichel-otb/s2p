@@ -168,6 +168,10 @@ def finalize_tile(tile_info, utm_zone=None):
     rpc_err_crop = os.path.join(tile_dir , 'rpc_err_crop.tif')
     crop_ref = os.path.join(tile_dir , 'roi_ref.tif')
     crop_ref_crop = os.path.join(tile_dir , 'roi_ref_crop.tif')
+    
+    if cfg['full_vrt']:
+        nb_views = os.path.join(tile_dir , 'nb_views.tif')
+        nb_views_crop = os.path.join(tile_dir , 'nb_views_crop.tif')
 
     dicoPos = {}
     dicoPos['M'] = [ov / 2, ov / 2, -ov, -ov]
@@ -197,7 +201,12 @@ def finalize_tile(tile_info, utm_zone=None):
     if not (os.path.isfile(rpc_err_crop) and cfg['skip_existing']):
         common.cropImage(rpc_err, rpc_err_crop,
                          newcol, newrow, w, h)
-    common.cropImage(crop_ref, crop_ref_crop, newcol, newrow, w, h)
+    if not (os.path.isfile(crop_ref_crop) and cfg['skip_existing']):
+        common.cropImage(crop_ref, crop_ref_crop, newcol, newrow, w, h)
+    
+    if cfg['full_vrt']:
+        if not (os.path.isfile(nb_views_crop) and cfg['skip_existing']):
+            common.cropImage(nb_views, nb_views_crop, newcol, newrow, w, h)
 
     # colors
     color_crop_ref(tile_info, cfg['images'][0]['clr'])
@@ -213,6 +222,7 @@ def rectify(tile_dir, A_global, img1, rpc1, img2, rpc2, x=None, y=None,
 
     Args:
         tile_dir: path to the output directory
+        A_global: global pointing corrections
         img1: path to the reference image.
         rpc1: paths to the xml file containing the rpc coefficients of the
             reference image
@@ -223,9 +233,6 @@ def rectify(tile_dir, A_global, img1, rpc1, img2, rpc2, x=None, y=None,
             image. (x, y) is the top-left corner, and (w, h) are the dimensions
             of the rectangle.
         prv1 (optional): path to a preview of the reference image.
-
-    Returns:
-    nothing
     """
     # output files
     rect1 = os.path.join(tile_dir,'rectified_ref.tif')
@@ -284,9 +291,6 @@ def disparity(tile_dir, img1, rpc1, img2, rpc2, x=None, y=None,
         roi_msk (optional): path to a gml file containing a mask defining the
             area contained in the full image
         wat_msk (optional): path to a tiff file containing a water mask.
-
-    Returns:
-    nothing
     """
     # output files
     rect1 = os.path.join(tile_dir,'rectified_ref.tif')
