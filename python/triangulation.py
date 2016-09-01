@@ -31,11 +31,11 @@ def compute_height_map(global_out_dir,
     for rpc in rpc_list:
         rpc_list_str += rpc + ' '
         
-    cmd = "disp_to_heights %s %s %s %s %s %s %s " % (global_out_dir, 
+    cmd = "disp_to_heights %s %s %s %s %s %s %s %s %s %s " % (global_out_dir, 
                        col, row, tw, th, z, 
+                       cfg['trg_cons'],cfg['thr_cons'], cfg['full_vrt'],
                        rpc_list_str)
 
-    #print cmd
     common.run(cmd)
 
     return
