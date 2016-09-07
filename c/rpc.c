@@ -9,26 +9,7 @@
 
 #include "xfopen.c"
 #include "vvector.h"
-
-
-
-// rational polynomial coefficients (and those of the inverse model)
-struct rpc {
-	double numx[20];
-	double denx[20];
-	double numy[20];
-	double deny[20];
-	double scale[3], offset[3];
-
-	double inumx[20];
-	double idenx[20];
-	double inumy[20];
-	double ideny[20];
-	double iscale[3], ioffset[3];
-
-	double dmval[4];
-	double imval[4];
-};
+#include "rpc.h"
 
 // set all the values of an rpc model to NAN
 static void nan_rpc(struct rpc *p)
@@ -476,12 +457,6 @@ void eval_rpc_pair(double xprime[2],
 #define A 6378137           // semi major axis
 #define E 0.081819190842622 // first eccentricity
 
-typedef struct // define the line passing by point 's' with direction vector 'v'
-{
-	double s[3]; // a point in space
-	double v[3]; // a direction vector
-} SV;
-
 // convert (long,lat,h) to ECEF coord sys. (X,Y,Z)
 void geotedic_to_ECEF(double lg, double lt, double h, 
 					  double *X, double *Y, double *Z)
@@ -497,6 +472,7 @@ void geotedic_to_ECEF(double lg, double lt, double h,
 }
 
 // given (X,Y,Z) ECEF coord, computes the alt above the WGS 84 ellipsoid
+// (faster than ECEF_to_lgt_lat_alt, but only gives the altitude)
 double get_altitude_from_ECEF(double X, double Y, double Z)
 {
 	double p = sqrt(X*X+Y*Y);
@@ -524,6 +500,37 @@ double get_altitude_from_ECEF(double X, double Y, double Z)
 	return h;
 }
 
+// given (X,Y,Z) ECEF coord, computes the lat/long/alt 
+// above the WGS 84 ellipsoid
+void ECEF_to_lgt_lat_alt(double X, double Y, double Z,
+						 double *lgt, double *lat, double *h)
+{         
+	double E2=E*E;
+	double deg2rad=atan2(1,1)/45.;
+	double epsilon_phi = 1e-12;
+	double kpi=45./atan2(1,1);
+
+	double R=sqrt(X*X+Y*Y);
+	double phi1 = atan2(Z,R*(1-A*E2/sqrt(X*X+Y*Y+Z*Z)));
+	double phi0 = phi1 + 10.*epsilon_phi;
+
+	// altitude
+	int max_nb_iter=15,nb_iter=0;
+	while ( (fabs(phi1-phi0) > epsilon_phi) && (nb_iter <= max_nb_iter) ) 
+	{
+		phi0 = phi1;
+      	phi1 = atan2(Z/R,1-A*E2*cos(phi0)/(R*sqrt(1-E2*sin(phi0)*sin(phi0))));
+		*h=R/cos(phi1)-A/sqrt(1-E2*sin(phi1)*sin(phi1));
+		nb_iter++;
+	}
+	
+	// longitude
+	*lgt = atan2(Y,X)*kpi;
+	
+	//latitude
+	*lat = phi1*kpi;
+}
+
 // distance between a 3D point P and a line (defined by its
 // normalized direction vector V and passing through a 3D point S) 
 double dist_line_point3D(double *V,double *S,double *P)
@@ -540,6 +547,37 @@ double dist_line_point3D(double *V,double *S,double *P)
 	VEC_LENGTH(norm,cross_prod);
 	
 	return norm;
+}
+
+// compute the vector VEC between a 3D point P0 and a line (
+// passing through two 3D points P and S)
+double vec_pt_to_line3D(double *P,double *S,double *P0,double *VEC)
+{
+	double diff10[3];
+	double diff21[3];
+	double dot_prod_diff10_diff21;
+	double t,norm_diff21;
+	double VT[3];
+	double diffVT0[3];
+	double norm_diffVT0;
+	
+	VEC_DIFF(diff10,P,P0);
+	VEC_DIFF(diff21,S,P);
+	VEC_LENGTH(norm_diff21,diff21);
+	VEC_DOT_PRODUCT(dot_prod_diff10_diff21,diff10,diff21);
+	t=-dot_prod_diff10_diff21 / ( norm_diff21*norm_diff21 );
+	VEC_COPY(VT,P)
+	VEC_ACCUM(VT,t,diff21);
+	VEC_DIFF(diffVT0,VT,P0);
+	
+	for(int t=0;t<3;t++)
+	{
+		VEC[t] = P0[t];
+		VEC[t+3] = VT[t];
+	}
+	
+	VEC_LENGTH(norm_diffVT0,diffVT0);
+	return norm_diffVT0;
 }
 
 // find closest 3D point from from a set of 3D lines
@@ -577,7 +615,8 @@ void find_point_opt(SV *sv_tab, int N, bool *take,
 // (geometric solution)
 double rpc_height_geo(struct rpc *rpc_list, 
 		double ** q_list, int *NV, 
-		bool findConsensus, double thres, double *outerr)
+		bool findConsensus, double thres, 
+		double *outerr, double **list_vec, bool *best_consensus)
 {
 	
 	int N = *NV;
@@ -596,6 +635,9 @@ double rpc_height_geo(struct rpc *rpc_list,
 		geotedic_to_ECEF(point1[0],point1[1],alt1,&X1,&Y1,&Z1);
 		geotedic_to_ECEF(point2[0],point2[1],alt2,&X2,&Y2,&Z2);
 		
+		sv_tab[i].p[0] = X1;
+		sv_tab[i].p[1] = Y1;
+		sv_tab[i].p[2] = Z1;
 		sv_tab[i].s[0] = X2;
 		sv_tab[i].s[1] = Y2;
 		sv_tab[i].s[2] = Z2;
@@ -607,7 +649,7 @@ double rpc_height_geo(struct rpc *rpc_list,
 	
 	double best_perf=1e6,err;
 	int best_consensus_score = 0;
-	bool *best_consensus = (bool *) malloc(N*sizeof(bool));
+	//bool *best_consensus = (bool *) malloc(N*sizeof(bool));
 	bool *tmp_consensus = (bool *) malloc(N*sizeof(bool));
 	bool *take = (bool *) calloc(N,sizeof(bool));
 	
@@ -689,6 +731,7 @@ double rpc_height_geo(struct rpc *rpc_list,
 	}
 		
 	double h,dist;
+	//double lgt,lat,h2;
 	if (best_consensus_score>=2)
 	{
 		// final estimation, without the outliers
@@ -699,15 +742,11 @@ double rpc_height_geo(struct rpc *rpc_list,
 		// between each viewing line
 		// and the optimal point
 		for(int i=0; i<N; i++)
-		{
-			if (best_consensus[i])
-				outerr[i] = dist_line_point3D(sv_tab[i].v,sv_tab[i].s,point_opt);
-			else
-				outerr[i] = NAN;
-		}
+			outerr[i] = vec_pt_to_line3D(sv_tab[i].p,sv_tab[i].s,point_opt,list_vec[i]);
 
 		// compute altitude h
 		h = get_altitude_from_ECEF(point_opt[0],point_opt[1],point_opt[2]);
+		//ECEF_to_lgt_lat_alt(point_opt[0],point_opt[1],point_opt[2],&lgt,&lat,&h2);
 	}
 	else
 	{
@@ -720,7 +759,7 @@ double rpc_height_geo(struct rpc *rpc_list,
 	// clean mem
 	free(sv_tab);
 	free(take);
-	free(best_consensus);
+	//free(best_consensus);
 	free(tmp_consensus);
 	
 	return h;
