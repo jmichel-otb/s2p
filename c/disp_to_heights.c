@@ -30,10 +30,6 @@ struct mat3x3 {
     double val[3][3];
 };
 
-bool opening_test(char const* file)
-{
-    return (fopen(file,"r") != NULL);
-}
 
 int main_disp_to_heights(int c, char *v[])
 {
@@ -97,8 +93,11 @@ int main_disp_to_heights(int c, char *v[])
     for(int i=0;i<nb_pairs;i++)
     {
         sprintf(tmp_path,"%s/pair_%d/pointing.txt",tile_dir,i+1);
-        if (!opening_test(tmp_path))
+        FILE *test = fopen(tmp_path,"r");
+        if ( test == NULL)
             sprintf(tmp_path,"%s/global_pointing_pair_%d.txt",global_out_dir,i+1);
+        else
+            fclose(test);
         
         read_matrix(A_list[i].val, tmp_path); 
     }
@@ -123,7 +122,8 @@ int main_disp_to_heights(int c, char *v[])
     for(int i=0;i<nb_pairs;i++)
     {
         sprintf(tmp_path,"%s/pair_%d/rectified_mask.png",tile_dir,i+1);
-        mask[i] = iio_read_image_float_split(tmp_path, &nx[i], &ny[i], &nch[i]);
+        int nbch;
+        mask[i] = iio_read_image_float_split(tmp_path, &nx[i], &ny[i], &nbch);
     }
     
     // build outputs paths and alloc mem
@@ -176,11 +176,15 @@ int main_disp_to_heights(int c, char *v[])
     rpc_list = (struct rpc *) malloc(N_rpc*sizeof( struct rpc ));
     rpc_list[0]=initial_rpc_list[0];
     // note that other rpc will be added only
-    // if a view is acceptable; 
-    // ref view is always acceptable
+    // if a view is masked or outside disp maps; 
+    // (ref view is always ok)
+    int *selected_views = (int *) malloc(N_rpc*sizeof(int));
+    selected_views[0]=0; 
 
     // Precisely, we wish we could know
     // the number of views used for each pixel
+    // as well as which views have used for each pixel
+    // (ref view always selected)
     int *nb_views;
     char fnb_views[1000];
     if (full_outputs)
@@ -188,14 +192,21 @@ int main_disp_to_heights(int c, char *v[])
         sprintf(fnb_views,"%s/nb_views.tif",tile_dir);
         nb_views = (int *) calloc(width*height, sizeof(int));
     }
+    tabchar * fout_selected_views;
+    int **img_selected_views;
+    if (full_outputs)
+    {
+        fout_selected_views = (tabchar *) malloc( N_rpc*sizeof(tabchar) );
+        for(int i=0; i<N_rpc; i++)
+            sprintf(fout_selected_views[i],"%s/selected_sight%d.tif",tile_dir,i+1);
+        
+        img_selected_views = (int **) malloc(N_rpc*sizeof( int * ));
+        for(int i=0;i<N_rpc;i++)
+            img_selected_views[i] = (int *) calloc(width*height,sizeof( int ));
+    }
 
-    // We wish we could also know
-    // which view have used for each pixel
-    // (ref view always selected)
-    int *selected_views = (int *) malloc(N_rpc*sizeof(int));
-    selected_views[0]=0; 
     
-    // Another interesting thing :
+    // Yet another interesting thing :
     // track the vector from an opt. point
     // to a given view
     double ** vec_optpt_to_view;
@@ -216,7 +227,7 @@ int main_disp_to_heights(int c, char *v[])
             img_vec_tab[i] = (float *) malloc(3*width*height*sizeof( float ));
     }
     
-    // Another interesting thing :
+    // Yet another interesting thing :
     // reproject the above vectors
     // into original geometry
     tabchar *fout_rpj_tab;
@@ -232,7 +243,7 @@ int main_disp_to_heights(int c, char *v[])
             rpj_vec_tab[i] = (float *) malloc(3*width*height*sizeof( float ));
     }
     
-    // Another interesting thing :
+    // Yet another interesting thing :
     // output the 2D disparities
     // for a given image pair
     tabchar *fout_disp2D_tab;
@@ -360,7 +371,6 @@ int main_disp_to_heights(int c, char *v[])
                 errMap_tab[i][posH] = NAN;
             if (full_outputs)
             {
-                nb_views[posH] = 0;
                 for(int i=0; i<N_rpc; i++)
                   for(int t=0; t<3; t++)
                     {
@@ -426,13 +436,19 @@ int main_disp_to_heights(int c, char *v[])
                     {
                       //* nb of views  
                       nb_views[posH] = N_views_updated;
-                      //* error vectors  
+                       
                       int index;
                       double lgt1,lat1,alt1,pos1[2];
                       double lgt2,lat2,alt2,pos2[2];
                       for(int i=0; i<N_views; i++)
                       {
                         index = selected_views[i];
+                        
+                        // * final selected views
+                        if ( best_consensus[i] )
+                            img_selected_views[index][posH]=1;
+                        
+                        //* error vectors 
                         for(int t=0; t<3; t++)
                             img_vec_tab[i][width*3*y+3*x+t] = 
                                  vec_optpt_to_view[index][t+3]
@@ -465,14 +481,15 @@ int main_disp_to_heights(int c, char *v[])
             } 
         }
     // save the height map / error map / nb_views
-    iio_save_image_float_vec(fout_heights, heightMap, width, height, 1);
+    iio_save_image_float(fout_heights, heightMap, width, height);
     for(int i=0;i<size_of_fout_err_tab;i++)
-        iio_save_image_float_vec(fout_err_tab[i], errMap_tab[i], width, height, 1);
+        iio_save_image_float(fout_err_tab[i], errMap_tab[i], width, height);
     if (full_outputs)
     {
         iio_save_image_int(fnb_views, nb_views, width, height);
         for(int i=0;i<N_rpc;i++)
         {
+            iio_save_image_int(fout_selected_views[i], img_selected_views[i], width, height);
             iio_save_image_float_vec(fout_vec_tab[i], img_vec_tab[i], width, height, 3);
             iio_save_image_float_vec(fout_rpj_tab[i], rpj_vec_tab[i], width, height, 3);
         }
@@ -516,6 +533,7 @@ int main_disp_to_heights(int c, char *v[])
     {
         for(int i=0; i<N_rpc; i++)
         {
+            free(img_selected_views[i]);
             free(vec_optpt_to_view[i]);
             free(img_vec_tab[i]);
             free(rpj_vec_tab[i]);
@@ -524,9 +542,11 @@ int main_disp_to_heights(int c, char *v[])
         {
             free(disp2D_tab[i]);
         }
+        free(img_selected_views);
         free(vec_optpt_to_view);
         free(img_vec_tab);
         free(rpj_vec_tab);
+        free(fout_selected_views);
         free(fout_vec_tab);
         free(fout_rpj_tab);
         free(fout_disp2D_tab);
