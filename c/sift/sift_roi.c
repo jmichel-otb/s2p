@@ -78,15 +78,10 @@ int main(int c, char *v[]) {
         return 0;
     }
        
-    GDALRasterBandH hBand;
-    hBand = GDALGetRasterBand( hDataset, 1 );
-    float *roi;
-    roi = (float *) CPLMalloc(sizeof(float)*w*h);
-    GDALRasterIO( hBand, GF_Read, x, y, w, h, 
-              roi, w, h, GDT_Float32, 
-              0, 0 );
-
-    GDALClose(hBand);
+    // read roi
+    GDALRasterBandH hBand = GDALGetRasterBand(hDataset, 1);
+    float *roi = (float *) CPLMalloc(sizeof(float)*w*h);
+    GDALRasterIO(hBand, GF_Read, x, y, w, h, roi, w, h, GDT_Float32, 0, 0);
     GDALClose(hDataset);
     if (verbose) print_elapsed_time(&ts, "read ROI", 35);
 
