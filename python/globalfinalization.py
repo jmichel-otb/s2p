@@ -119,6 +119,20 @@ def write_vrt_files(tiles_full_info):
             disp2Di_crop = 'pair_%d/disp2D_crop.tif' % pair_id
             tile_composer.mosaic_stitch( os.path.join(cfg['out_dir'], disp2Di),
                                    tileSizesAndPositions, disp2Di_crop, fw, fh, 3, z)
+                                   
+        # Cleaning
+        if(cfg['clean_intermediate'] and cfg['vrt_to_tiff']):
+            
+            for tile_dir in tileSizesAndPositions:
+                # height maps
+                common.remove_if_exists(os.path.join(tile_dir,'height_map_crop.tif'))
+                # rpc_err_all
+                common.remove_if_exists(os.path.join(tile_dir,'rpc_err_all_crop.tif'))
+                
+            # height maps vrt
+            common.remove_if_exists(os.path.join(cfg['out_dir'],'height_map.vrt'))
+            # rpc_err_all vrt
+            common.remove_if_exists(os.path.join(cfg['out_dir'],'rpc_err_all.vrt'))
 
 
 def write_dsm():
@@ -129,6 +143,12 @@ def write_dsm():
     final_dsm = os.path.join(cfg['out_dir'], 'dsm.vrt')
     common.run("gdalbuildvrt %s %s" % (final_dsm, dsm_pieces))
 
+    if cfg['vrt_to_tiff']:
+        common.run('gdal_translate %s %s' % (final_dsm, os.path.splitext(final_dsm)[0]+".tif"))
+        if cfg['clean_intermediate']:
+            shutil.rmtree(os.path.join(cfg['out_dir'],'dsm'))
+            common.remove_if_exists(final_dsm);
+                          
 
 def lidar_preprocessor(output, input_plys):
     """
