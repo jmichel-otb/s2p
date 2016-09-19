@@ -141,9 +141,6 @@ def get_disparity_maps(tile_info, pair_id):
     A_global = os.path.join(cfg['out_dir'],
                             'global_pointing_pair_%d.txt' % pair_id)
                             
-    if not os.path.isfile("/ptmp/palmannc/s2pcluster/trg-roi-2img-9tiles-6/results_out/tile_500_500_row_2700/col_2300/pair_1/dont_process_this_pair.txt"):
-        open("/ptmp/palmannc/s2pcluster/trg-roi-2img-9tiles-6/results_out/tile_500_500_row_2700/col_2300/pair_1/dont_process_this_pair.txt", 'a').close()                            
-                            
     # check whether the pair must be processed
     pair_dir = os.path.join(tile_dir, 'pair_%d' % (pair_id))
     if os.path.isfile(os.path.join(pair_dir, 'dont_process_this_pair.txt')):
