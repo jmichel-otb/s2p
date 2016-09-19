@@ -179,7 +179,6 @@ def get_disparity_maps(tile_info, pair_id):
         common.remove_if_exists(os.path.join(pair_dir,'rectified_sec.tif'))
         common.remove_if_exists(os.path.join(pair_dir,'cloud_water_image_domain_mask.png'))
         common.remove_if_exists(os.path.join(pair_dir,'rectified_cloud_water_image_domain_mask.png'))
-        
 
 
 def process_tile(tile_info):
@@ -224,8 +223,10 @@ def process_tile(tile_info):
             print '\ttriangulating tile %d %d...' % (col, row)
             process.triangulate(tile_info, None)
 
+
         # finalization
         process.finalize_tile(tile_info, cfg['utm_zone'])
+
 
         # ply extrema
         common.run("plyextrema {} {}".format(tile_dir, os.path.join(tile_dir, 'plyextrema.txt')))
