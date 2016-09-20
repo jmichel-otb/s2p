@@ -87,8 +87,21 @@ def mosaic_stitch(vrtfilename, tiles_full_info, filename, w, h, nbch=1, z=1):
         nothing
     """
     
-    vrt_row = {}
+    # produce a nan image
+    nan_img_dir = os.path.join(cfg['out_dir'],
+            'tile_%d_%d_nan' % (cfg["tile_size"],cfg["tile_size"]) )
+    if not os.path.exists(nan_img_dir):
+        os.makedirs(nan_img_dir)
+    nan_img = os.path.join(nan_img_dir,'nan.tif')
+    if not os.path.isfile(nan_img):
+        common.run("nan_generator %s %s %s" 
+                % (nan_img,cfg["tile_size"],cfg["tile_size"]))
+                
+    nan_img = os.path.join('../tile_%d_%d_nan' 
+                % (cfg["tile_size"],cfg["tile_size"]),'nan.tif')
 
+    # some inits
+    vrt_row = {}
     files_to_remove = []
     
     for tile_dir in tiles_full_info:
@@ -104,14 +117,26 @@ def mosaic_stitch(vrtfilename, tiles_full_info, filename, w, h, nbch=1, z=1):
 
             vrt_row[row]['vrt_body'].setdefault(bandid,"")
 
-            if os.path.isfile(os.path.join(cfg['out_dir'],vrt_row[row]['vrt_dir'],height_map)):
-                files_to_remove.append(os.path.join(cfg['out_dir'],vrt_row[row]['vrt_dir'],height_map))
-                vrt_row[row]['vrt_body'][bandid]+="\t\t<SimpleSource>\n"
-                vrt_row[row]['vrt_body'][bandid]+="\t\t\t<SourceFilename relativeToVRT=\"1\">%s</SourceFilename>\n" % height_map
-                vrt_row[row]['vrt_body'][bandid]+="\t\t\t<SourceBand>%i</SourceBand>\n" % bandid
-                vrt_row[row]['vrt_body'][bandid]+="\t\t\t<SrcRect xOff=\"%i\" yOff=\"%i\" xSize=\"%i\" ySize=\"%i\"/>\n" % (0, 0, tw/z, th/z)
-                vrt_row[row]['vrt_body'][bandid]+="\t\t\t<DstRect xOff=\"%i\" yOff=\"%i\" xSize=\"%i\" ySize=\"%i\"/>\n" % (col/z, 0, tw/z, th/z)
-                vrt_row[row]['vrt_body'][bandid]+="\t\t</SimpleSource>\n"
+            height_map_full_path = os.path.join(cfg['out_dir'],vrt_row[row]['vrt_dir'],height_map)
+            if os.path.isfile(height_map_full_path):
+                files_to_remove.append(height_map_full_path)
+                item_to_be_pushed = height_map
+            else:
+                item_to_be_pushed = nan_img
+            
+            source=''
+            source+="\t\t<SimpleSource>\n"
+            source+="\t\t\t<SourceFilename relativeToVRT=\"1\">%s</SourceFilename>\n" % item_to_be_pushed
+            source+="\t\t\t<SourceBand>%i</SourceBand>\n" % bandid
+            source+="\t\t\t<SrcRect xOff=\"%i\" yOff=\"%i\" xSize=\"%i\" ySize=\"%i\"/>\n" % (0, 0, tw/z, th/z)
+            source+="\t\t\t<DstRect xOff=\"%i\" yOff=\"%i\" xSize=\"%i\" ySize=\"%i\"/>\n" % (col/z, 0, tw/z, th/z)
+            source+="\t\t</SimpleSource>\n"
+            
+            if item_to_be_pushed == height_map:
+                vrt_row[row]['vrt_body'][bandid]+=source
+            if item_to_be_pushed == nan_img:
+                source+=vrt_row[row]['vrt_body'][bandid]
+                vrt_row[row]['vrt_body'][bandid]=source
 
 
     # First, write row vrt file
