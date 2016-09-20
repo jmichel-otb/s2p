@@ -214,7 +214,6 @@ def process_tile(tile_info):
         for pair_id in xrange(1, nb_pairs + 1):
             get_disparity_maps(tile_info, pair_id)
 
-
         # triangulation
         if (cfg['skip_existing'] and
             os.path.isfile(os.path.join(tile_dir, 'height_map.tif'))):
@@ -223,10 +222,8 @@ def process_tile(tile_info):
             print '\ttriangulating tile %d %d...' % (col, row)
             process.triangulate(tile_info, None)
 
-
         # finalization
         process.finalize_tile(tile_info, cfg['utm_zone'])
-
 
         # ply extrema
         common.run("plyextrema {} {}".format(tile_dir, os.path.join(tile_dir, 'plyextrema.txt')))
