@@ -86,7 +86,7 @@ def mosaic_stitch(vrtfilename, tiles_full_info, filename, w, h, nbch=1, z=1):
     Returns:
         nothing
     """
-    
+
     # produce a nan image
     nan_img_dir = os.path.join(cfg['out_dir'],
             'tile_%d_%d_nan' % (cfg["tile_size"],cfg["tile_size"]) )
@@ -94,25 +94,25 @@ def mosaic_stitch(vrtfilename, tiles_full_info, filename, w, h, nbch=1, z=1):
         os.makedirs(nan_img_dir)
     nan_img = os.path.join(nan_img_dir,'nan.tif')
     if not os.path.isfile(nan_img):
-        common.run("nan_generator %s %s %s" 
+        common.run("nan_generator %s %s %s"
                 % (nan_img,cfg["tile_size"],cfg["tile_size"]))
-                
-    nan_img = os.path.join('../tile_%d_%d_nan' 
+
+    nan_img = os.path.join('../tile_%d_%d_nan'
                 % (cfg["tile_size"],cfg["tile_size"]),'nan.tif')
 
     # some inits
     vrt_row = {}
     files_to_remove = []
-    
+
     for tile_dir in tiles_full_info:
-        
+
         col,row,tw,th=tiles_full_info[tile_dir]
         height_map = os.path.join(tile_dir,filename)
         s = height_map.split("/")
         height_map = os.path.join(*s[1:])
-        
-        vrt_row.setdefault(row,{'vrt_body' : {},'vrt_dir' : tile_dir.split('/')[0]})
-        
+
+        vrt_row.setdefault(row,{'vrt_body' : {},'vrt_dir' : tile_dir.split('/')[0], 'th' : th})
+
         for bandid in xrange(1,nbch+1):
 
             vrt_row[row]['vrt_body'].setdefault(bandid,"")
@@ -123,7 +123,7 @@ def mosaic_stitch(vrtfilename, tiles_full_info, filename, w, h, nbch=1, z=1):
                 item_to_be_pushed = height_map
             else:
                 item_to_be_pushed = nan_img
-            
+
             source=''
             source+="\t\t<SimpleSource>\n"
             source+="\t\t\t<SourceFilename relativeToVRT=\"1\">%s</SourceFilename>\n" % item_to_be_pushed
@@ -131,7 +131,7 @@ def mosaic_stitch(vrtfilename, tiles_full_info, filename, w, h, nbch=1, z=1):
             source+="\t\t\t<SrcRect xOff=\"%i\" yOff=\"%i\" xSize=\"%i\" ySize=\"%i\"/>\n" % (0, 0, tw/z, th/z)
             source+="\t\t\t<DstRect xOff=\"%i\" yOff=\"%i\" xSize=\"%i\" ySize=\"%i\"/>\n" % (col/z, 0, tw/z, th/z)
             source+="\t\t</SimpleSource>\n"
-            
+
             if item_to_be_pushed == height_map:
                 vrt_row[row]['vrt_body'][bandid]+=source
             if item_to_be_pushed == nan_img:
@@ -141,10 +141,11 @@ def mosaic_stitch(vrtfilename, tiles_full_info, filename, w, h, nbch=1, z=1):
 
     # First, write row vrt file
     for row,vrt_data in vrt_row.iteritems():
+        th = vrt_data['th']
         row_vrt_filename = os.path.join(cfg['out_dir'],vrt_data['vrt_dir'],os.path.basename(vrtfilename))
         files_to_remove.append(row_vrt_filename)
         tmp_vrt_file = open(row_vrt_filename,'w')
-        
+
         tmp_vrt_file.write("<VRTDataset rasterXSize=\"%i\" rasterYSize=\"%i\">\n" % (w/z,th/z))
         for bandid in xrange(1,nbch+1):
             tmp_vrt_file.write("\t<VRTRasterBand dataType=\"Float32\" band=\"%i\">\n" % bandid)
@@ -152,14 +153,15 @@ def mosaic_stitch(vrtfilename, tiles_full_info, filename, w, h, nbch=1, z=1):
             tmp_vrt_file.write("\t</VRTRasterBand>\n")
         tmp_vrt_file.write("</VRTDataset>\n")
         tmp_vrt_file.close()
-            
-    # Next, write entry in final vrt file        
+
+    # Next, write entry in final vrt file
     vrtfile = open(vrtfilename, 'w')
     vrtfile.write("<VRTDataset rasterXSize=\"%i\" rasterYSize=\"%i\">\n" % (w/z,h/z))
     for bandid in xrange(1,nbch+1):
         vrtfile.write("\t<VRTRasterBand dataType=\"Float32\" band=\"%i\">\n" % bandid)
-        
-        for row,vrt_data in vrt_row.iteritems():                
+
+        for row,vrt_data in vrt_row.iteritems():
+            th = vrt_data['th']
             vrtfile.write("\t\t<SimpleSource>\n")
             vrtfile.write("\t\t\t<SourceFilename relativeToVRT=\"1\">%s</SourceFilename>\n" % os.path.join(vrt_data['vrt_dir'],os.path.basename(vrtfilename)))
             vrtfile.write("\t\t\t<SourceBand>%i</SourceBand>\n" % bandid)
