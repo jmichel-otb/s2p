@@ -12,7 +12,7 @@ import common
 from config import cfg
 
 
-def compute_height_map(global_out_dir, 
+def compute_height_map(global_out_dir,
                        col, row, tw, th, z, rpc_list):
     """
     Computes a height map from a disparity map, using a list of rpc.
@@ -30,9 +30,9 @@ def compute_height_map(global_out_dir,
     rpc_list_str=''
     for rpc in rpc_list:
         rpc_list_str += rpc + ' '
-        
-    cmd = "disp_to_heights %s %s %s %s %s %s %s %s %s %s " % (global_out_dir, 
-                       col, row, tw, th, z, 
+
+    cmd = "disp_to_heights %s %s %s %s %s %s %s %s %s %s " % (global_out_dir,
+                       col, row, tw, th, z,
                        int(cfg['trg_cons']),cfg['thr_cons'], int(cfg['full_vrt']),
                        rpc_list_str)
 
@@ -62,9 +62,9 @@ def colorize(crop_panchro, im_color, x, y, zoom, out_colorized, rmin,rmax):
     #   translation (-1 - x/4, -y/4)
     #   zoom 4/z
     w, h = common.image_size_tiffinfo(crop_panchro)
-    xx = np.floor(x / 4.0) 
+    xx = np.floor(x / 4.0)
     yy = np.floor(y / 4.0)
-    ww = np.ceil((x + w * zoom) / 4.0) - xx 
+    ww = np.ceil((x + w * zoom) / 4.0) - xx
     hh = np.ceil((y + h * zoom) / 4.0) - yy
     crop_ms = common.image_crop_tif(im_color, xx, yy, ww, hh)
     crop_ms = common.image_zoom_gdal(crop_ms, zoom/4.0)
@@ -86,7 +86,7 @@ def colorize(crop_panchro, im_color, x, y, zoom, out_colorized, rmin,rmax):
     # denotes the panchro intensity
     tmp = common.tmpfile('.tif')
     pcmd = "dup split + + / * 3 *"
-    os.environ['TMPDIR'] = os.path.join(cfg['temporary_dir'], 'meta/')
+    common.set_TMPDIR()
     cmd = 'tiffu meta \"plambda ^ ^1 \\\"%s\\\" -o @\" %s %s -- %s' % (pcmd,
                                                                       crop_panchro,
                                                                       rgb, tmp)

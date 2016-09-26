@@ -167,11 +167,10 @@ def init_dirs_srtm(config_file):
     if not os.path.exists( os.path.join(cfg['out_dir'],'dsm') ):
         os.makedirs( os.path.join(cfg['out_dir'],'dsm') )
 
-    if not os.path.exists(cfg['temporary_dir']):
-        os.makedirs(cfg['temporary_dir'])
-
-    if not os.path.exists(os.path.join(cfg['temporary_dir'], 'meta')):
-        os.makedirs(os.path.join(cfg['temporary_dir'], 'meta'))
+    common.set_TMPDIR()
+    temporary_dir = os.environ['TMPDIR']
+    if not os.path.exists(temporary_dir):
+        os.makedirs(temporary_dir)
 
     f = open('%s/config.json' % cfg['out_dir'], 'w')
     json.dump(cfg, f, indent=2)
