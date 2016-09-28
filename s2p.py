@@ -289,7 +289,10 @@ def compute_dsm(args):
     dsm_dir = os.path.join(cfg['out_dir'],'dsm')
     out_dsm = os.path.join(dsm_dir,'dsm_%d.tif' % (current_tile) )
 
-    extremaxy = np.loadtxt(os.path.join(cfg['out_dir'], 'global_extent.txt'))
+    if cfg['global_extent'] is None:
+        extremaxy = np.loadtxt(os.path.join(cfg['out_dir'], 'global_extent.txt'))
+    else :
+        extremaxy = cfg['global_extent']
 
     global_xmin,global_xmax,global_ymin,global_ymax = extremaxy
     

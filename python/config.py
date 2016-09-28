@@ -147,3 +147,8 @@ cfg['thr_cons'] = 1
 
 # Convert vrt to plain tiffs
 cfg['vrt_to_tiff'] = True
+
+# Force global extent 
+# global_extent = [xmin, xmax, ymin, ymax]
+cfg['global_extent']= None
+
