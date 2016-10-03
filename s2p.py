@@ -355,6 +355,8 @@ def global_finalization(tiles_full_info):
         tiles_full_info: dictionary providing all the information about the
             processed tiles
     """
+    print "timetest"
+    print_elapsed_time()
     globalfinalization.write_vrt_files(tiles_full_info)
     globalfinalization.write_dsm()
 

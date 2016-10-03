@@ -127,8 +127,8 @@ static int rescale_float_to_int(double x, double min, double max, int w, bool *f
 
 
 typedef struct {
-	float x;
-	float y;
+	double x;
+	double y;
 } Position;
 
 struct images {
@@ -422,17 +422,17 @@ int main(int c, char *v[])
 		help(*v);
 		return 1;
 	}
-	float resolution = atof(v[1]);
+	double resolution = atof(v[1]);
 	char *out_dsm = v[2];
 	
-	float xmin = atof(v[3]);
-	float xmax = atof(v[4]);
-	float ymin = atof(v[5]);
-	float ymax = atof(v[6]);
-	float xmin_orig=xmin;
-	float xmax_orig=xmax;
-	float ymin_orig=ymin;
-	float ymax_orig=ymax;
+	double xmin = atof(v[3]);
+	double xmax = atof(v[4]);
+	double ymin = atof(v[5]);
+	double ymax = atof(v[6]);
+	double xmin_orig=xmin;
+	double xmax_orig=xmax;
+	double ymin_orig=ymin;
+	double ymax_orig=ymax;
 	fprintf(stderr, "xmin: %20f, xmax: %20f, ymin: %20f, ymax: %20f\n", xmin,xmax,ymin,ymax);
 	int rowmin = atoi(v[7]);
 	int steprow = atoi(v[8]);
@@ -587,15 +587,29 @@ int main(int c, char *v[])
 		l = l->next;
 	    }
 	    
+        FILE* dsmposfile = NULL;
+        char dsmposfilename[1000];
+        sprintf(dsmposfilename,"%s.%s",out_dsm,"pos_before_removing_extra_pix.txt");
+        dsmposfile = fopen(dsmposfilename, "w");
+        if (dsmposfile==NULL)
+        fprintf(stderr, "ERROR : can't open %s\n",dsmposfilename);
+        
 	    // heights synthesis 
 	    Position center_pos;
-	    for (int i = 0; i < w; i++)
-		for (int j = 0; j < h; j++)
+	    for (int j = 0; j < h; j++)
+        {
+		for (int i = 0; i < w; i++)
 		{
 		    center_pos.x=xmin+resolution/2.0 +(xmax-xmin)/( (float) w)*i;
 		    center_pos.y=-ymax+resolution/2.0 +(ymax-ymin)/( (float) h)*j;
+            
+            fprintf(dsmposfile, "%f %f ", center_pos.x, center_pos.y);
+            
 		    synth_heights(&x,i,j,center_pos,flag,radius,minnonan,param_inter);
 		}
+        fprintf(dsmposfile, "\n");
+	    }
+	    fclose(dsmposfile);
 	}
 	
 	// cleanup and exit (1)
@@ -620,12 +634,27 @@ int main(int c, char *v[])
 	    
 	    Position center_pos_orig;
 	    
-	    for (int ii = 0; ii < w_orig; ii++)
-		for (int jj = 0; jj < h_orig; jj++)
+	    FILE* dsmposfile = NULL;
+	    char dsmposfilename[1000];
+	    sprintf(dsmposfilename,"%s.%s",out_dsm,"pos.txt");
+	    dsmposfile = fopen(dsmposfilename, "w");
+	    if (dsmposfile==NULL)
+		fprintf(stderr, "ERROR : can't open %s\n",dsmposfilename);
+		
+	    double x_orig = xmin_orig+resolution/2.0;
+	    double y_orig = -ymax_orig+resolution/2.0;
+	    double x_step = (xmax_orig-xmin_orig)/( (double) w_orig);
+	    double y_step = (ymax_orig-ymin_orig)/( (double) h_orig);
+	    
+	    for (int jj = 0; jj < h_orig; jj++)
+	    {
+		for (int ii = 0; ii < w_orig; ii++)
 		{
-		    center_pos_orig.x=xmin_orig+resolution/2.0 +(xmax_orig-xmin_orig)/( (float) w_orig)*ii;
-		    center_pos_orig.y=-ymax_orig+resolution/2.0 +(ymax_orig-ymin_orig)/( (float) h_orig)*jj;
+		    center_pos_orig.x=x_orig+x_step*ii;
+		    center_pos_orig.y=y_orig+y_step*jj;
 		    
+		    fprintf(dsmposfile, "%f %f ", center_pos_orig.x, center_pos_orig.y);
+
 		    int iic = (int) ((center_pos_orig.x-xmin-resolution/2.0)*w/(xmax-xmin)+0.5);
 		    int jjc = (int) ((center_pos_orig.y+ymax-resolution/2.0)*h/(ymax-ymin)+0.5);
 		    
@@ -637,6 +666,9 @@ int main(int c, char *v[])
 			x_cut.pixel_value[k_orig] = x.pixel_value[k];
 		    }
 		}
+		fprintf(dsmposfile, "\n");
+	    }
+	    fclose(dsmposfile);
 	    
 	    // save output image
 	    iio_save_image_float(out_dsm, x_cut.pixel_value, w_orig, h_orig);
