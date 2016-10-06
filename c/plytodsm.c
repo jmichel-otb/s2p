@@ -16,6 +16,32 @@
 #include "fail.c"
 #include "xmalloc.c"
 
+typedef struct {
+	double x;
+	double y;
+	double z;
+} HeightPosition;
+
+typedef struct {
+	double x;
+	double y;
+} Position;
+
+struct images {
+	double *cnt;
+	double *pixel_value;
+	Position *cell_pos;
+	bool *is_empty;
+	HeightPosition **heipos;
+	int w, h;
+};
+
+struct ply_property {
+    enum {UCHAR,FLOAT,DOUBLE,UNKNOWN} type;
+    char name[0x100];
+    size_t len;
+};
+
 
 // convert string like '28N' into a number like 32628, according to:
 // WGS84 / UTM northern hemisphere: 326zz where zz is UTM zone number
@@ -65,13 +91,6 @@ void set_geotif_header(char *tiff_fname, char *utm_zone, float xoff,
 }
 
 
-
-struct ply_property {
-    enum {UCHAR,FLOAT,DOUBLE,UNKNOWN} type;
-    char name[0x100];
-    size_t len;
-};
-
 static bool parse_property_line(struct ply_property *t, char *buf)
 {
     char typename[0x100];
@@ -82,8 +101,6 @@ static bool parse_property_line(struct ply_property *t, char *buf)
     if (0 == strcmp(typename, "double")){ t->type = DOUBLE; t->len = 8;}
     return r;
 }
-
-
 
 // fast forward "f" until "end_header" is found
 // returns the number of 'properties'
@@ -114,38 +131,26 @@ static size_t header_get_record_length_and_utm_zone(FILE *f_in, char *utm,
 }
 
 
-
-// re-scale a float between 0 and w
-static int rescale_float_to_int(double x, double min, double max, int w, bool *flag)
+// re-scale a double between 0 and w-1
+static int rescale_double_to_int(double x, double min, double resolution)
 {
-    *flag=1;
-    int r = w * (x - min)/(max - min);
-    if (r < 0) *flag=0;
-    if (r >= w) *flag=0;
+    /*double a = -(w-1)/(min-max);
+    double b = min*(w-1)/(min-max);
+    int r = (int) (a*x+b +0.5);*/
+    int r = (int) ((x-min)/resolution+0.5);
     return r;
 }
 
-
-typedef struct {
-	double x;
-	double y;
-} Position;
-
-struct images {
-	float *cnt;
-	float *pixel_value;
-	float **heights;
-	Position **pos;
-	int w, h;
-};
-
-// Help to sort tabs of float
+// Help to sort tabs of double
 int compare (const void * a, const void * b)
 {
-    return *(float *) a - *(float *) b;
+    HeightPosition * HPa = (HeightPosition *) a;
+    HeightPosition * HPb = (HeightPosition *) b;
+    
+    return HPa->z - HPb->z;
 }
 
-double weight(Position pos, Position center_pos, unsigned int flag,float pinterp)
+double weight(HeightPosition pos, Position center_pos, unsigned int flag,double pinterp)
 {
     double eps=10e-3;
     
@@ -165,18 +170,12 @@ double weight(Position pos, Position center_pos, unsigned int flag,float pinterp
 
 
 // update the output images with a new height
-static void add_height_to_images(struct images *x, int i, int j, float v, Position pos, int flag)
+static void add_height_to_images(struct images *x, int i, int j, Position pos, double v, int flag)
 {
     uint64_t k = (uint64_t) x->w * j + i;
     
     switch (flag) 
     {
-	case 0: // nominal case
-	{
-	    x->pixel_value[k] = (v + x->cnt[k] * x->pixel_value[k]) / (1 + x->cnt[k]);
-	    x->cnt[k] += 1;
-	}
-	break;
 	case -3: // just count the number of occurrences
 	{
 	    x->cnt[k] += 1;
@@ -186,96 +185,89 @@ static void add_height_to_images(struct images *x, int i, int j, float v, Positi
 	{
 	    if (x->cnt[k])
 	    {
-		if (!x->heights[k])
-		{
-		    x->heights[k] = xmalloc(x->cnt[k]*sizeof(float));
-		    x->cnt[k]=0;
-		}
-		
-		x->heights[k][(int) x->cnt[k]] = v;
-		x->cnt[k] += 1;
-	    }
-	}
-	break;
-	case -1: // memory alloc and tab filling for heights/pos
-	{
-	    if (x->cnt[k])
-	    {
-		if ( (!x->heights[k]) && (!x->pos[k]) ) 
-		{
-		    x->heights[k] = xmalloc(x->cnt[k]*sizeof(float));
-		    x->pos[k] = xmalloc(x->cnt[k]*sizeof(Position));
-		    x->cnt[k]=0;
-		}
-		
-		x->heights[k][(int) x->cnt[k]] = v;
-
-		x->pos[k][(int) x->cnt[k]] = pos;
-		x->cnt[k] += 1;
+            if (!x->heipos[k])
+            {
+                x->heipos[k] = xmalloc(x->cnt[k]*sizeof(HeightPosition));
+                x->cnt[k]=0.0;
+            }
+            
+            x->heipos[k][(int) x->cnt[k]].x = pos.x;
+            x->heipos[k][(int) x->cnt[k]].y = pos.y;
+            x->heipos[k][(int) x->cnt[k]].z = v;
+            x->cnt[k] += 1;
 	    }
 	}
 	break;
     }
 }
 
-static void synth_heights(struct images *x, int i, int j, Position center_pos, int flag, int radius, int minnonan, float pinterp)
+static void synth_heights(struct images *x, int i, int j, int flag, 
+                          double pinterp, double resolution)
 {
     uint64_t k = (uint64_t) x->w * j + i;
     
     switch (flag) 
     {	   	    
-        case 1: // average
+        case 1: // mean
         {
-            if (x->cnt[k])
+            if (!x->is_empty[k])
             {
-            float sum=0.;
-            for(int t=0;t<x->cnt[k];t++)
-                sum += x->heights[k][t];
-            x->pixel_value[k] = sum / ( (float) x->cnt[k]);
+                double sum=0.,n=0.,dist;
+                for(int t=0;t<x->cnt[k];t++)
+                {
+                    dist = MAX( abs(x->heipos[k][t].x-x->cell_pos[k].x) , 
+                                abs(x->heipos[k][t].y-x->cell_pos[k].y) );
+                    if (dist <= resolution/2.0)
+                    {
+                        sum += x->heipos[k][t].z;
+                        n++;
+                    }
+                }
+                x->pixel_value[k] = sum / n;
             }
         }
         break;
         case 2: // var
         {
-            if (x->cnt[k])
+            if (!x->is_empty[k])
             {
-            double sum1=0.,sumC=0.;
-            for(int t=0;t<x->cnt[k];t++)
-            {
-                sum1 += (double) x->heights[k][t];
-                sumC += pow( (double) x->heights[k][t],2.0);
-            }
-            double m1 = sum1 / ( (double) x->cnt[k]);
-            double mc = sumC / ( (double) x->cnt[k]);
+                double sum1=0.,sumC=0.;
+                for(int t=0;t<x->cnt[k];t++)
+                {
+                    sum1 += x->heipos[k][t].z;
+                    sumC += pow( x->heipos[k][t].z,2.0);
+                }
+                double m1 = sum1 / ( x->cnt[k] );
+                double mc = sumC / ( x->cnt[k] );
 
-            x->pixel_value[k] = mc-m1*m1;
+                x->pixel_value[k] = mc-m1*m1;
             }
         }
         break;
         case 3: // min
         {
-            if (x->cnt[k])
+            if (!x->is_empty[k])
             {
-            qsort (x->heights[k], (int) x->cnt[k], sizeof(float), compare);
-            x->pixel_value[k] = x->heights[k][0];
+                qsort (x->heipos[k], (int) x->cnt[k], sizeof(HeightPosition), compare);
+                x->pixel_value[k] = x->heipos[k][0].z;
             }
         }
         break;
         case 4: // max
         {
-            if (x->cnt[k])
+            if (!x->is_empty[k])
             {
-            qsort (x->heights[k], (int) x->cnt[k], sizeof(float), compare);
-            x->pixel_value[k] = x->heights[k][(int) x->cnt[k]-1];
+                qsort (x->heipos[k], (int) x->cnt[k], sizeof(HeightPosition), compare);
+                x->pixel_value[k] = x->heipos[k][(int) x->cnt[k]-1].z;
             }
         }
         break;
         case 5: // median
         {
-            if (x->cnt[k])
+            if (!x->is_empty[k])
             {
-            qsort (x->heights[k], (int) x->cnt[k], sizeof(float), compare);
-            x->pixel_value[k] = x->heights[k][(int) x->cnt[k]/2];
+                qsort (x->heipos[k], (int) x->cnt[k], sizeof(HeightPosition), compare);
+                x->pixel_value[k] = x->heipos[k][(int) x->cnt[k]/2].z;
             }
         }
         break;
@@ -285,32 +277,19 @@ static void synth_heights(struct images *x, int i, int j, Position center_pos, i
     {
         double w;
         double sum=0.0,weighted_moy=0.0;
-	int found = 0;
-        
-        if (x->cnt[k]) // Do not interpolate
-        {    
-	    radius = 0; // But still use the distances from the cell center to weight heights
-	    found = minnonan;
-	}
-        
-        for(int ii=-radius; ii<=radius; ii++)
-            for(int jj=-radius; jj<=radius; jj++)
-            if ( (i+ii>=0) && (i+ii<x->w) && (j+jj>=0) && (j+jj<x->h) )
+        int found = 0;
+        if (x->is_empty[k])
+        {
+            for(int t=0;t<x->cnt[k];t++)
             {
-                uint64_t kt = (uint64_t) x->w * (j+jj) + i+ii;
-                if (x->cnt[kt])
-                {
-                    found++;
-                    for(int t=0;t<x->cnt[kt];t++)
-                    {
-                        w = weight(x->pos[kt][t],center_pos,flag,pinterp);
-                        sum += w;
-                        weighted_moy += w * ( (double) x->heights[kt][t] );
-                    }
-                }
+              w = weight(x->heipos[k][t],x->cell_pos[k],flag,pinterp);
+              sum += w;
+              weighted_moy += w * x->heipos[k][t].z;
             }
-        if (found>=minnonan)
             x->pixel_value[k] = weighted_moy/sum;
+        }
+        else
+            synth_heights(x, i, j, 1, pinterp, resolution);
     }
 }
 
@@ -336,7 +315,8 @@ int get_record(FILE *f_in, int isbin, struct ply_property *t, int n, double *dat
                              break; }
             }
         }
-    } else {
+    } 
+    else {
         int i=0;
         while (i < n && !feof(f_in)) {
             rec += fscanf(f_in,"%lf", &data[i]);  i++;
@@ -347,8 +327,8 @@ int get_record(FILE *f_in, int isbin, struct ply_property *t, int n, double *dat
 
 
 // open a ply file, and accumulate its points to the image
-static void add_ply_points_to_images(struct images *x,
-        float xmin, float xmax, float ymin, float ymax,
+static void add_ply_points_to_images(struct images *img,
+        double xmin, double xmax, double ymin, double ymax, int radius, double resolution,
         char utm_zone[3], char *fname, int col_idx, unsigned int flag)
 {
 	FILE *f = fopen(fname, "r");
@@ -369,31 +349,52 @@ static void add_ply_points_to_images(struct images *x,
 		exit(fprintf(stderr, "error: bad col_idx %d\n", col_idx));
 
 
-	double data[n];
+	double *data = (double *) malloc(n*sizeof(double));
 	double center_x,center_y,d;
 	while ( n == get_record(f, isbin, t, n, data) ) {
-		bool flag1,flag2;
-		int i = rescale_float_to_int(data[0], xmin, xmax, x->w, &flag1);
-		int j = rescale_float_to_int(-data[1], -ymax, -ymin, x->h, &flag2);
-		
-		Position pos;
-		pos.x=data[0];
-		pos.y=-data[1];
-				
-		if ( (flag1) && (flag2))
-		{
-		    if (col_idx == 2) {
-			    add_height_to_images(x, i, j, data[2], pos, flag);
-			    assert(isfinite(data[2]));
-		    }
-		    else
-		    {
-			    unsigned int rgb = data[col_idx];
-			    add_height_to_images(x, i, j, rgb, pos, flag);
-		    }
-		}
+        
+        Position pos;
+	    pos.x=data[0];
+	    pos.y=-data[1];
+        
+	    double dist;
+	    uint64_t k; 
+        int ii = rescale_double_to_int(pos.x, xmin, resolution);
+	    int jj = rescale_double_to_int(pos.y, -ymax, resolution);
+        int neigh = radius+5;
+	    for (int j = jj-neigh; j < jj+neigh; j++)
+	      for (int i = ii-neigh; i < ii+neigh; i++)
+            if ( (i>=0) && (i<img->w) && (j>=0) && (j<img->h) )
+        /*for (int j = 0; j < img->h; j++)
+	      for (int i = 0; i < img->w; i++)*/
+            {
+                k = img->w * j + i;
+                
+                dist = MAX( abs(pos.x-img->cell_pos[k].x) , abs(pos.y-img->cell_pos[k].y) );
+                
+                if (dist <= resolution/2.0)
+                {
+                    img->is_empty[k]=false;
+                    //printf("[%d %d]  A%d %dA\n",ii,jj,i,j);
+                }
+                
+                if (dist <= resolution/2.0 + radius*resolution)
+                {
+                    //printf("(%d %d) %f %f %f %f   %f %f\n",i,j,img->cell_pos[k].x,img->cell_pos[k].y,pos.x,pos.y,dist,resolution/2.0 + radius*resolution);
+                    if (col_idx == 2) {
+                        add_height_to_images(img, i, j, pos, data[2], flag);
+                        assert(isfinite(data[2]));
+                    }
+                    else
+                    {
+                        unsigned int rgb = data[col_idx];
+                        add_height_to_images(img, i, j, pos, rgb, flag);
+                    }
+                }
+            }
 	}
 
+    free(data);
 	fclose(f);
 }
 
@@ -402,7 +403,7 @@ void help(char *s)
 {
 	fprintf(stderr, "usage:\n\t"
 			"%s [-c column] [-flag flag] [-radius radius] [-minnonan minnonan] [-param_inter param_inter] \
-			resolution out_dsm xmin xmax ymin ymax \
+			resolution out_dsm xmin ymin w h \
 			rowmin steprow rowmax colmin stepcol colmax tw th root_out_dir\n", s);
 	fprintf(stderr, "\t the resolution is in meters per pixel\n");
 }
@@ -413,9 +414,9 @@ int main(int c, char *v[])
 {
 	int col_idx = atoi(pick_option(&c, &v, "c", "2"));
 	int flag = atoi(pick_option(&c, &v, "flag", "0"));
-	int radius = atoi(pick_option(&c, &v, "radius", "0"));
+	int radius = atoi(pick_option(&c, &v, "radius", "1"));
 	int minnonan = atoi(pick_option(&c, &v, "minnonan", "0"));
-	float param_inter = atof(pick_option(&c, &v, "pinterp", "1"));
+	double param_inter = atof(pick_option(&c, &v, "pinterp", "1"));
 
 	// process input arguments
 	if (c != 16) {
@@ -426,9 +427,11 @@ int main(int c, char *v[])
 	char *out_dsm = v[2];
 	
 	double xmin = atof(v[3]);
-	double xmax = atof(v[4]);
-	double ymin = atof(v[5]);
-	double ymax = atof(v[6]);
+	double ymin = atof(v[4]);
+	int w = atoi(v[5]);
+	int h = atoi(v[6]);
+    double xmax = xmin+w*resolution;
+    double ymax = ymin+h*resolution;
 	double xmin_orig=xmin;
 	double xmax_orig=xmax;
 	double ymin_orig=ymin;
@@ -446,12 +449,15 @@ int main(int c, char *v[])
 
 	if (flag>=6) // interpolation
 	{
-	    xmin -= radius*resolution;
-	    xmax += radius*resolution;
-	    ymin -= radius*resolution;
-	    ymax += radius*resolution;
+        int mult=1;
+	    xmin -= (resolution/2.0 + mult*radius*resolution);
+	    xmax += resolution/2.0 + mult*radius*resolution;
+	    ymin -= (resolution/2.0 + mult*radius*resolution);
+	    ymax += resolution/2.0 + mult*radius*resolution;
 	    fprintf(stderr, "interpolation --> xmin: %20f, xmax: %20f, ymin: %20f, ymax: %20f\n", xmin,xmax,ymin,ymax);
 	}
+	else
+	    radius = 0;
 
 	// process each filename to determine x, y extremas and store the
 	// filenames in a list of strings, to be able to open the files again
@@ -511,183 +517,73 @@ int main(int c, char *v[])
 		fprintf(stderr, "ERROR : no ply file pushed\n");
 		return 1;
 	}
-		
-	// compute output image dimensions
-	int w = 1 + (xmax - xmin) / resolution;
-	int h = 1 + (ymax - ymin) / resolution;
-
-	// allocate and initialize output images
-	struct images x;
-	x.w = w;
-	x.h = h;
-	x.cnt = xmalloc((uint64_t) w*h*sizeof(float));
-	x.pixel_value = xmalloc((uint64_t) w*h*sizeof(float));
-	if (flag != 0)
-	{
-	    x.heights = xmalloc((uint64_t) w*h*sizeof(float *));
-	    if (flag>=6) // interpolation
-		x.pos = xmalloc((uint64_t) w*h*sizeof(Position *));
-	}
-
-	for (uint64_t i = 0; i < (uint64_t) w*h; i++)
-	{
-		x.cnt[i] = 0;
-		x.pixel_value[i] = 0;
-		if (flag != 0)
-		{
-		    x.heights[i] = NULL;
-		    if (flag>=6) // interpolation
-			x.pos[i] = NULL;
-		}
-	}
-
-
-	// process each filename to accumulate points in the dem
+	
 	struct list *begin = l;
 	
-	if (flag==0)
-	{
-	    while (l != NULL)
-	    {
-		    // printf("FILENAME: \"%s\"\n", l->current);
-		    add_ply_points_to_images(&x, xmin, xmax, ymin, ymax, utm, l->current, col_idx,flag);
-		    l = l->next;
-	    }
+	struct images img;
+	img.w = w;
+	img.h = h;
+	img.cnt = xmalloc((uint64_t) w*h*sizeof(double));
+	img.is_empty = xmalloc((uint64_t) w*h*sizeof(bool));
+	img.pixel_value = xmalloc((uint64_t) w*h*sizeof(double));
+	img.cell_pos = xmalloc((uint64_t) w*h*sizeof(Position));
+	img.heipos = xmalloc((uint64_t) w*h*sizeof(HeightPosition *));
 
-	    // set unknown values to NAN
-	    for (uint64_t i = 0; i < (uint64_t) w*h; i++)
-		    if (!x.cnt[i])
-			    x.pixel_value[i] = NAN;
+	for (int j = 0; j < img.h; j++)
+	  for (int i = 0; i < img.w; i++)
+	    {
+		uint64_t k = img.w * j + i;
+		img.cell_pos[k].x = xmin + i*resolution;
+		img.cell_pos[k].y = -ymax + j*resolution;
+		img.cnt[k] = 0;
+		img.is_empty[k] = true;
+		img.pixel_value[k] = 0;
+		img.heipos[k] = NULL;
+	    }
+	
+	printf("%d %d %d\n",w,h,img.is_empty[0]);
+	
+	l=begin;
+	int n=0;
+	while (l != NULL)
+	{
+	    n++;
+	    printf("%d / %d\n",n,nbply_pushed);
+	    add_ply_points_to_images(&img, xmin, xmax, ymin, ymax, radius,resolution, utm, l->current, col_idx,-3);
+	    l = l->next;
 	}
-	else
+	l=begin;
+	n=0;
+	while (l != NULL)
 	{
-
-	    l=begin;
-	    while (l != NULL)
-	    {
-		// printf("FILENAME: \"%s\"\n", l->current);
-		add_ply_points_to_images(&x, xmin, xmax, ymin, ymax, utm, l->current, col_idx,-3);
-		l = l->next;
-	    }
-	    // set unknown values to NAN
-	    for (uint64_t i = 0; i < (uint64_t) w*h; i++)
-		    if (!x.cnt[i])
-			    x.pixel_value[i] = NAN;
-	    
-	    l=begin;
-	    while (l != NULL)
-	    {
-		// printf("FILENAME: \"%s\"\n", l->current);
-		int n;
-		if (flag <6) // no interpolation
-		    n=-2;
-		else
-		    n=-1;
-		add_ply_points_to_images(&x, xmin, xmax, ymin, ymax, utm, l->current, col_idx,n);
-		l = l->next;
-	    }
-	    
-        FILE* dsmposfile = NULL;
-        char dsmposfilename[1000];
-        sprintf(dsmposfilename,"%s.%s",out_dsm,"pos_before_removing_extra_pix.txt");
-        dsmposfile = fopen(dsmposfilename, "w");
-        if (dsmposfile==NULL)
-        fprintf(stderr, "ERROR : can't open %s\n",dsmposfilename);
-        
-	    // heights synthesis 
-	    Position center_pos;
-	    for (int j = 0; j < h; j++)
-        {
-		for (int i = 0; i < w; i++)
-		{
-		    center_pos.x=xmin+resolution/2.0 +(xmax-xmin)/( (float) w)*i;
-		    center_pos.y=-ymax+resolution/2.0 +(ymax-ymin)/( (float) h)*j;
-            
-            fprintf(dsmposfile, "%f %f ", center_pos.x, center_pos.y);
-            
-		    synth_heights(&x,i,j,center_pos,flag,radius,minnonan,param_inter);
-		}
-        fprintf(dsmposfile, "\n");
-	    }
-	    fclose(dsmposfile);
+	    n++;
+	    printf("%d / %d\n",n,nbply_pushed);
+	    add_ply_points_to_images(&img, xmin, xmax, ymin, ymax, radius,resolution, utm, l->current, col_idx,-2);
+	    l = l->next;
 	}
 	
-	// cleanup and exit (1)
-	free(x.cnt);
-	for (uint64_t i = 0; i < (uint64_t) w*h; i++)
-	    if (flag != 0)
-		{
-		    free(x.heights[i]);
-		    if (flag>=6) // interpolation
-			free(x.pos[i]);
-		}
-	free(x.heights);
-	free(x.pos);
+	// heights synthesis 
+	for (int j = 0; j < img.h; j++)
+	  for (int i = 0; i < img.w; i++)
+	    synth_heights(&img,i,j,flag,param_inter,resolution);
 	
 	
-	if ( (flag>=6) && (radius>0) )//interpolation, remove extra pixels due to neighboring
-	{
-	    struct images x_cut;
-	    int w_orig = 1 + (xmax_orig - xmin_orig) / resolution;
-	    int h_orig = 1 + (ymax_orig - ymin_orig) / resolution;
-	    x_cut.pixel_value = xmalloc((uint64_t) w_orig*h_orig*sizeof(float));
+	// set unknown values to NAN
+	for (uint64_t i = 0; i < (uint64_t) img.w*img.h; i++)
+		if (!img.cnt[i])
+			img.pixel_value[i] = NAN;
 	    
-	    Position center_pos_orig;
-	    
-	    FILE* dsmposfile = NULL;
-	    char dsmposfilename[1000];
-	    sprintf(dsmposfilename,"%s.%s",out_dsm,"pos.txt");
-	    dsmposfile = fopen(dsmposfilename, "w");
-	    if (dsmposfile==NULL)
-		fprintf(stderr, "ERROR : can't open %s\n",dsmposfilename);
-		
-	    double x_orig = xmin_orig+resolution/2.0;
-	    double y_orig = -ymax_orig+resolution/2.0;
-	    double x_step = (xmax_orig-xmin_orig)/( (double) w_orig);
-	    double y_step = (ymax_orig-ymin_orig)/( (double) h_orig);
-	    
-	    for (int jj = 0; jj < h_orig; jj++)
-	    {
-		for (int ii = 0; ii < w_orig; ii++)
-		{
-		    center_pos_orig.x=x_orig+x_step*ii;
-		    center_pos_orig.y=y_orig+y_step*jj;
-		    
-		    fprintf(dsmposfile, "%f %f ", center_pos_orig.x, center_pos_orig.y);
-
-		    int iic = (int) ((center_pos_orig.x-xmin-resolution/2.0)*w/(xmax-xmin)+0.5);
-		    int jjc = (int) ((center_pos_orig.y+ymax-resolution/2.0)*h/(ymax-ymin)+0.5);
-		    
-		    uint64_t k = (uint64_t) w * jjc + iic;
-		    
-		    if (k < (uint64_t) w*h)
-		    {
-			uint64_t k_orig = (uint64_t) w_orig * jj + ii;
-			x_cut.pixel_value[k_orig] = x.pixel_value[k];
-		    }
-		}
-		fprintf(dsmposfile, "\n");
-	    }
-	    fclose(dsmposfile);
-	    
-	    // save output image
-	    iio_save_image_float(out_dsm, x_cut.pixel_value, w_orig, h_orig);
-	    set_geotif_header(out_dsm, utm, xmin_orig, ymax_orig, resolution);
-	    
-	    // cleanup and exit (2)
-	    free(x.pixel_value);
-	    free(x_cut.pixel_value);
-	    
-	}
-	else
-	{
-	    // save output image
-	    iio_save_image_float(out_dsm, x.pixel_value, w, h);
-	    set_geotif_header(out_dsm, utm, xmin, ymax, resolution);
-	    
-	    // cleanup and exit (2)
-	    free(x.pixel_value);
-	}
+	iio_save_image_double(out_dsm, img.pixel_value, img.w, img.h);
+	set_geotif_header(out_dsm, utm, xmin_orig, ymax_orig, resolution);
+	
+	free(img.cnt);
+	free(img.is_empty);
+	free(img.pixel_value);
+	free(img.cell_pos);
+	for (uint64_t i = 0; i < (uint64_t) img.w*img.h; i++)
+      if (img.heipos[i])
+	    free(img.heipos[i]);
+	free(img.heipos);
 
 	return 0;
 }

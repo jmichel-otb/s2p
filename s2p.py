@@ -295,13 +295,21 @@ def compute_dsm(args):
         extremaxy = cfg['global_extent']
 
     global_xmin,global_xmax,global_ymin,global_ymax = extremaxy
+    global_xmin = np.floor(global_xmin)
+    global_xmax = np.ceil(global_xmax)
+    global_ymin = np.floor(global_ymin)
+    global_ymax = np.ceil(global_ymax)
     
-    global_y_diff = global_ymax-global_ymin
-    tile_y_size = (global_y_diff)/(number_of_tiles)
-
-    # horizontal cuts
-    ymin = global_ymin + current_tile*tile_y_size
-    ymax = ymin + tile_y_size
+    global_width_pix = np.ceil( (global_xmax - global_xmin) / cfg['dsm_resolution'] )
+    global_height_pix = np.ceil( (global_ymax - global_ymin) / cfg['dsm_resolution'] )
+       
+    height_pix = global_height_pix // number_of_tiles 
+    residual_rows =   global_height_pix % number_of_tiles
+    
+    ymin = global_ymin + current_tile*height_pix*cfg['dsm_resolution']
+    
+    if (current_tile == number_of_tiles-1):
+        height_pix = height_pix + residual_rows
 
     # cutting info
     x, y, w, h, z, ov, tw, th, nb_pairs = initialization.cutting(config_file)
@@ -312,7 +320,6 @@ def compute_dsm(args):
     cutsinf = '%d %d %d %d %d %d %d %d' % (rowmin, th - ov, rowmax, colmin, tw - ov, colmax, tw, th)
 
     flags={}
-    flags['average-orig']=0
     flags['average']=1
     flags['variance']=2
     flags['min']=3
@@ -321,25 +328,26 @@ def compute_dsm(args):
     flags['interpol-asympt']=6
     flags['interpol-gauss']=7
     flags['interpol-sigmoid']=8
-    flag = "-flag %d" % ( flags.get(cfg['dsm_option'],0) )
+    flag = "-flag %d" % ( flags.get(cfg['dsm_option'],1) )
     radius = "-radius %d" % ( cfg['dsm_radius'] )
     pinterp = "-pinterp %d" % ( cfg['dsm_pinterp'] )
     minnonan = "-minnonan %d" % ( cfg['dsm_min_nonan'] )
 
-    if (ymax <= global_ymax):
-        common.run("plytodsm %s %s %s %s %f %s %f %f %f %f %s %s" % (
-                                                 flag,    #%s
-                                                 radius,  #%s
-                                                 pinterp, #%s
-                                                 minnonan, #%s
-                                                 cfg['dsm_resolution'], #%f
-                                                 out_dsm, #%s
-                                                 global_xmin, #%f
-                                                 global_xmax, #%f
-                                                 ymin, #%f
-                                                 ymax, #%f
-                                                 cutsinf, #%s
-                                                 cfg['out_dir'])) #%s
+    if (ymin <= global_ymax):
+        common.run("plytodsm %s %s %s %s %s %s %s %s %s %s %s %s" % (
+                                                 flag,    
+                                                 radius,  
+                                                 pinterp, 
+                                                 minnonan, 
+                                                 cfg['dsm_resolution'], 
+                                                 out_dsm, 
+                                                 global_xmin, 
+                                                 ymin, 
+                                                 global_width_pix, 
+                                                 height_pix, 
+                                                 cutsinf, 
+                                                 cfg['out_dir'])) 
+                                                 
 
 def global_finalization(tiles_full_info):
     """
