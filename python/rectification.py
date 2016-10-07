@@ -159,18 +159,10 @@ def disparity_range_from_matches(matches, H1, H2, w, h):
     x2 = p2[:, 0]
     y2 = p2[:, 1]
 
-    # estimate an affine transformation (tilt, shear and bias) mapping p1 on p2
-    t, s, b = np.linalg.lstsq(np.vstack((x2, y2, y2*0+1)).T, x1)[0][:3]
-
-    # compute the disparities for the affine model. The extrema are obtained at
-    # the ROI corners
-    xx = np.array([0, w, 0, w])
-    yy = np.array([0, 0, h, h])
-    disp_affine_model = (xx*t + yy*s + b) - xx
-
     # compute the final disparity range
-    disp_min = np.floor(min(np.min(disp_affine_model), np.min(x2 - x1)))
-    disp_max = np.ceil(max(np.max(disp_affine_model), np.max(x2 - x1)))
+    diff_x2_x1 = x2-x1
+    disp_min = np.floor(np.percentile(diff_x2_x1,2))
+    disp_max = np.ceil(np.percentile(diff_x2_x1,98))
 
     # add a security margin to the disparity range
     disp_min *= (1 - np.sign(disp_min) * cfg['disp_range_extra_margin'])
@@ -267,7 +259,7 @@ def rectification_homographies(matches, x, y, w, h):
 
 
 def rectify_pair(im1, im2, rpc1, rpc2, x, y, w, h, out1, out2, A=None,
-                 sift_matches=None, method='rpc'):
+                 sift_matches=None, neighborhood_sift_matches=None, method='rpc'):
     """
     Rectify a ROI in a pair of images.
 
@@ -318,14 +310,30 @@ def rectify_pair(im1, im2, rpc1, rpc2, x, y, w, h, out1, out2, A=None,
     # compute rectifying homographies
     H1, H2, F = rectification_homographies(matches, x, y, w, h)
 
+    # using sift_matches from neighborhood
+    print 'using sift_matches from neighborhood'
+    if sift_matches is None:
+        sift_matches = np.concatenate(neighborhood_sift_matches)
+
     # compose H2 with a horizontal translation to center disp range around 0
     if sift_matches is not None:
         sift_matches = filter_matches_epipolar_constraint(F, sift_matches,
                                                           cfg['epipolar_thresh'])
         if len(sift_matches) < 10:
-            print 'WARNING: no registration with less than 10 matches'
+            print 'WARNING: no registration using sift_matches of the current tile with less than 10 matches'
+            print 'using sift_matches from neighborhood'
+
+            sift_matches = filter_matches_epipolar_constraint(F, np.concatenate(neighborhood_sift_matches),
+                                                              cfg['epipolar_thresh'])
+            if len(sift_matches) < 10:
+                raise Exception('no sift_matches respecting epipolar_thresh in current tile and in the neighborhood')
+            else:
+                H2 = register_horizontally(sift_matches, H1, H2)
+
         else:
             H2 = register_horizontally(sift_matches, H1, H2)
+    else:
+        raise Exception('no sift_matches respecting epipolar_thresh in current tile and in the neighborhood')
 
     # compute disparity range
     disp_m, disp_M = disparity_range(rpc1, rpc2, x, y, w, h, H1, H2,

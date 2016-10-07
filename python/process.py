@@ -45,7 +45,7 @@ def color_crop_ref(tile_info, crop_ref, clr=None):
     crop_ref = os.path.join(tile_dir , 'roi_ref_crop.tif')
     global_minmax = os.path.join(cfg['out_dir'] , 'global_minmax.txt')
     applied_minmax = os.path.join(tile_dir , 'applied_minmax.txt')
-    
+
     global_minmax_arr = np.loadtxt(global_minmax)
 
     if cfg['color_ply']:
@@ -169,7 +169,7 @@ def finalize_tile(tile_info, utm_zone=None):
     rpc_err_all_crop = os.path.join(tile_dir , 'rpc_err_rms_allsights_crop.tif')
     crop_ref = os.path.join(tile_dir , 'roi_ref.tif')
     crop_ref_crop = os.path.join(tile_dir , 'roi_ref_crop.tif')
-    
+
     dicoPos = {}
     dicoPos['M'] = [ov / 2, ov / 2, -ov, -ov]
     dicoPos['L'] = [0, ov / 2, -ov / 2, -ov]
@@ -189,7 +189,7 @@ def finalize_tile(tile_info, utm_zone=None):
     w = w / z + difftw
     h = h / z + diffth
     tile_info['coordinates'] = (x, y, w, h)
-    
+
     # z=1 because height_map, crop_ref (and so forth) have
     # already been zoomed. So don't zoom again to crop these images.
     if not (os.path.isfile(height_map_crop) and cfg['skip_existing']):
@@ -198,52 +198,52 @@ def finalize_tile(tile_info, utm_zone=None):
     if not (os.path.isfile(rpc_err_all_crop) and cfg['skip_existing']):
         common.cropImage(rpc_err_all, rpc_err_all_crop,
                          newcol, newrow, w, h)
-    
+
     if cfg['full_vrt']:
-        
+
         nb_views = os.path.join(tile_dir , 'nb_sights.tif')
         nb_views_crop = os.path.join(tile_dir , 'nb_sights_crop.tif')
-        
+
         if not (os.path.isfile(nb_views_crop) and cfg['skip_existing']):
             common.cropImage(nb_views, nb_views_crop, newcol, newrow, w, h)
-            
-        for img_id in xrange(1,len(cfg['images'])+1): 
+
+        for img_id in xrange(1,len(cfg['images'])+1):
             #selected sights
             selected_sighti = os.path.join(tile_dir ,
                             'selected_sight_%d.tif' % img_id)
             selected_sighti_crop = os.path.join(tile_dir ,
-                                'selected_sight_%d_crop.tif' % img_id) 
+                                'selected_sight_%d_crop.tif' % img_id)
             if not (os.path.isfile(selected_sighti_crop) and cfg['skip_existing']):
                 common.cropImage(selected_sighti, selected_sighti_crop,
                              newcol, newrow, w, h)
-            
-            # err by sight                   
-            rpc_err_sighti = os.path.join(tile_dir , 
+
+            # err by sight
+            rpc_err_sighti = os.path.join(tile_dir ,
                                 'rpc_err_norm_sight_%d.tif' % img_id)
-            rpc_err_sighti_crop = os.path.join(tile_dir , 
+            rpc_err_sighti_crop = os.path.join(tile_dir ,
                                 'rpc_err_norm_sight_%d_crop.tif' % img_id)
             if not (os.path.isfile(rpc_err_sighti_crop) and cfg['skip_existing']):
                 common.cropImage(rpc_err_sighti, rpc_err_sighti_crop,
-                             newcol, newrow, w, h) 
-                             
-            # err vector by sight (from opt point to a given sight)                                   
-            rpc_err_veci = os.path.join(tile_dir , 
+                             newcol, newrow, w, h)
+
+            # err vector by sight (from opt point to a given sight)
+            rpc_err_veci = os.path.join(tile_dir ,
                                 'rpc_err_vec_sight_%d.tif' % img_id)
-            rpc_err_veci_crop = os.path.join(tile_dir , 
+            rpc_err_veci_crop = os.path.join(tile_dir ,
                                 'rpc_err_vec_sight_%d_crop.tif' % img_id)
             if not (os.path.isfile(rpc_err_veci_crop) and cfg['skip_existing']):
                 common.cropImage(rpc_err_veci, rpc_err_veci_crop,
-                             newcol, newrow, w, h) 
-                                       
-            # reprojected err vector by sight (from opt point to a given sight)                                   
-            rpc_err_vec_rpji = os.path.join(tile_dir , 
+                             newcol, newrow, w, h)
+
+            # reprojected err vector by sight (from opt point to a given sight)
+            rpc_err_vec_rpji = os.path.join(tile_dir ,
                                 'rpc_err_rpjvec_sight_%d.tif' % img_id)
-            rpc_err_vec_rpji_crop = os.path.join(tile_dir , 
+            rpc_err_vec_rpji_crop = os.path.join(tile_dir ,
                                 'rpc_err_rpjvec_sight_%d_crop.tif' % img_id)
             if not (os.path.isfile(rpc_err_vec_rpji_crop) and cfg['skip_existing']):
                 common.cropImage(rpc_err_vec_rpji, rpc_err_vec_rpji_crop,
-                             newcol, newrow, w, h)           
-                             
+                             newcol, newrow, w, h)
+
         for pair_id in xrange(1,nb_pairs+1):
             # 2D disparities (if originaly computed in epipolar geometry)
             pair_dir = os.path.join(tile_dir,'pair_%d' % pair_id)
@@ -253,21 +253,21 @@ def finalize_tile(tile_info, utm_zone=None):
                 if not (os.path.isfile(disp2Di_crop) and cfg['skip_existing']):
                     common.cropImage(disp2Di, disp2Di_crop,
                                  newcol, newrow, w, h)
-        
-    
-    # ref                     
+
+
+    # ref
     if not (os.path.isfile(crop_ref_crop) and cfg['skip_existing']):
         common.cropImage(crop_ref, crop_ref_crop, newcol, newrow, w, h)
 
     # colors
     color_crop_ref(tile_info, cfg['images'][0]['clr'])
-    
+
     # Generate cloud
     generate_cloud(tile_info, cfg['offset_ply'], utm_zone)
 
 
 def rectify(tile_dir, A_global, img1, rpc1, img2, rpc2, x=None, y=None,
-            w=None, h=None, prv1=None):
+            w=None, h=None, prv1=None, neighboring_tile_dir=None):
     """
     Computes rectifications, without tiling
 
@@ -309,10 +309,21 @@ def rectify(tile_dir, A_global, img1, rpc1, img2, rpc2, x=None, y=None,
     if os.path.isfile(os.path.join(tile_dir,'sift_matches.txt')):
         m = np.loadtxt(os.path.join(tile_dir,'sift_matches.txt'))
 
+    if neighboring_tile_dir is not None:
+        print "getting sift_matches.txt from neighborhood"
+        m_list = list()
+        for neighbor in neighboring_tile_dir:
+            if os.path.isfile(os.path.join(neighbor,'sift_matches.txt')):
+                print "using sift_matches.txt from %s"%(neighbor,)
+                m_list.append(np.loadtxt(os.path.join(neighbor,
+                                                      'sift_matches.txt')))
+    if m is None and m_list == list():
+        raise Exception('no sift_matches in current tile and in the neighborhood')
+
     # rectification
     H1, H2, disp_min, disp_max = rectification.rectify_pair(img1, img2, rpc1,
                                                             rpc2, x, y, w, h,
-                                                            rect1, rect2, A, m)
+                                                            rect1, rect2, A, m, m_list)
 
     z = cfg['subsampling_factor']
     np.savetxt(subsampling, np.array([z]), fmt='%.1f')
@@ -344,9 +355,9 @@ def disparity(tile_dir, pair_id, img1, rpc1, img2, rpc2, x=None, y=None,
             area contained in the full image
         wat_msk (optional): path to a tiff file containing a water mask.
     """
-    
+
     out_dir = os.path.join(tile_dir, 'pair_%d' % pair_id)
-    
+
     # output files
     rect1 = os.path.join(out_dir,'rectified_ref.tif')
     rect2 = os.path.join(out_dir,'rectified_sec.tif')
@@ -392,7 +403,7 @@ def disparity(tile_dir, pair_id, img1, rpc1, img2, rpc2, x=None, y=None,
         masking.intersection(mask, mask, cwid_msk_rect)
         masking.erosion(mask, mask, cfg['msk_erosion'])
     except OSError:
-        print "file %s not produced" % mask 
+        print "file %s not produced" % mask
 
 
 def triangulate(tile_info, prv1=None, A=None):
@@ -408,13 +419,13 @@ def triangulate(tile_info, prv1=None, A=None):
     col, row, tw, th = tile_info['coordinates']
     z = cfg['subsampling_factor']
     global_out_dir = cfg['out_dir']
-       
+
     rpc_list=[]
     images = cfg['images']
     for i in xrange(len(images)):
         rpc_list.append(images[i]['rpc'])
 
     # triangulation
-    triangulation.compute_height_map(global_out_dir, 
+    triangulation.compute_height_map(global_out_dir,
                               col, row, tw, th, z,
                               rpc_list)

@@ -73,7 +73,7 @@ def init_roi(config_file):
     3) Selects the ROI
     4) Checks the zoom factor
     """
-	
+
     # read the json configuration file
     f = open(config_file)
     user_cfg = json.load(f)
@@ -118,7 +118,7 @@ def init_roi(config_file):
         cfg['roi']['w'] = w
         cfg['roi']['h'] = h
     else :
-        x = cfg['roi']['x']    
+        x = cfg['roi']['x']
         y = cfg['roi']['y']
         w = cfg['roi']['w']
         h = cfg['roi']['h']
@@ -132,11 +132,11 @@ def init_roi(config_file):
     # check the zoom factor
     z = cfg['subsampling_factor']
     assert(z > 0 and z == np.floor(z))
-       
+
     # ensure that the coordinates of the ROI are multiples of the zoom factor,
-    # to avoid bad registration of tiles due to rounding problems.          
+    # to avoid bad registration of tiles due to rounding problems.
     x, y, w, h = common.round_roi_to_nearest_multiple(z, x, y, w, h)
-    cfg['roi']['x'] = x    
+    cfg['roi']['x'] = x
     cfg['roi']['y'] = y
     cfg['roi']['w'] = w
     cfg['roi']['h'] = h
@@ -151,7 +151,7 @@ def init_dirs_srtm(config_file):
     """
     1) Creates different directories : output, temp...
     2) Downloads srtm files
-    
+
     Args:
         - config_file : a json configuratio file
     """
@@ -192,12 +192,12 @@ def cutting(config_file):
     2) Compute optimal size for tiles, get the number of pairs
     """
     init_roi(config_file)
-    
+
     # Get ROI
-    x = cfg['roi']['x']    
+    x = cfg['roi']['x']
     y = cfg['roi']['y']
     w = cfg['roi']['w']
-    h = cfg['roi']['h']    
+    h = cfg['roi']['h']
     z = cfg['subsampling_factor']
 
     # Automatically compute optimal size for tiles
@@ -221,7 +221,7 @@ def cutting(config_file):
     print 'total number of tiles: %d (%d x %d)' % (nt, ntx, nty)
     nb_pairs = len(cfg['images']) - 1
     print 'total number of pairs: %d' % nb_pairs
-    
+
     return x, y, w, h, z, ov, tw, th, nb_pairs
 
 
@@ -255,7 +255,7 @@ def init_tiles_full_info(config_file):
     range_x = np.arange(x, x + w - ov, tw - ov)
     rowmin, rowmax = range_y[0], range_y[-1]
     colmin, colmax = range_x[0], range_x[-1]
-       
+
     for i, row in enumerate(range_y):
         for j, col in enumerate(range_x):
             # ensure that tile coordinates are multiples of the zoom factor
@@ -294,9 +294,25 @@ def init_tiles_full_info(config_file):
             tile_info['overlap'] = ov
             tile_info['number_of_pairs'] = nb_pairs
             tile_info['images'] = cfg['images']
+
+            tile_info['neighborhood'] = list()
+            for row2 in [row - (th - ov), row, row + (th - ov)]:
+                for col2 in [col - (tw - ov), col, col + (tw - ov)]:
+                    if rowmax >= row2 >= rowmin and colmax >= col2 >= colmin:
+                        if col2 != col or row2 != row:
+                            # ensure that tile coordinates are multiples of the zoom factor
+                            col2, row2, __, __ = common.round_roi_to_nearest_multiple(z, col2, row2,
+                                                                                      tw, th)
+                            tile_dir = os.path.join(cfg['out_dir'], 'tile_%d_%d_row_%d' % (tw,
+                                                                                           th,
+                                                                                           row2),
+                                                    'col_%d' % col2)
+
+                            tile_info['neighborhood'].append(tile_dir)
+
             tiles_full_info.append(tile_info)
 
     if len(tiles_full_info) == 1:
         tiles_full_info[0]['position_type'] = 'Single'
-   
+
     return tiles_full_info

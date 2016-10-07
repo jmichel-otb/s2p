@@ -94,6 +94,7 @@ def preprocess_tile(tile_info):
         # the last arg '0' is for no buffering
         sys.stdout = fout
         sys.stderr = fout
+        print 'preprocess_tiles on %s ...' % tile_info
 
     try:
         preprocess.pointing_correction(tile_info)
@@ -140,7 +141,7 @@ def get_disparity_maps(tile_info, pair_id):
 
     A_global = os.path.join(cfg['out_dir'],
                             'global_pointing_pair_%d.txt' % pair_id)
-                            
+
     # check whether the pair must be processed
     pair_dir = os.path.join(tile_dir, 'pair_%d' % (pair_id))
     if os.path.isfile(os.path.join(pair_dir, 'dont_process_this_pair.txt')):
@@ -148,6 +149,13 @@ def get_disparity_maps(tile_info, pair_id):
         return
 
     print 'processing tile %d %d...' % (col, row)
+
+    print 'recovering neighborhood'
+    neighboring_tile_dir = list()
+    for neighbor in tile_info['neighborhood']:
+        neighboring_pair_dir = os.path.join(neighbor, 'pair_%d' % (pair_id))
+        if os.path.isfile(os.path.join(neighboring_pair_dir, 'dont_process_this_pair.txt')) == False:
+            neighboring_tile_dir.append(neighboring_pair_dir)
 
     # rectification
     if (cfg['skip_existing'] and
@@ -158,11 +166,8 @@ def get_disparity_maps(tile_info, pair_id):
     else:
         print '\trectifying tile %d %d (pair %d)...' % (col, row, pair_id)
         process.rectify(pair_dir, np.loadtxt(A_global), img1, rpc1,
-                        img2, rpc2, col, row, tw, th, None)
+                        img2, rpc2, col, row, tw, th, None, neighboring_tile_dir )
 
-        if(cfg['clean_intermediate']):
-            common.remove_if_exists(os.path.join(pair_dir,'sift_matches.txt'))
-        
     # disparity estimation
     if (cfg['skip_existing'] and
         os.path.isfile(os.path.join(pair_dir, 'rectified_mask.png')) and
@@ -188,13 +193,13 @@ def process_tile(tile_info):
     Args:
         tile_info: a dictionary that provides all you need to process a tile
     """
-    
+
     # read all the information
     tile_dir = tile_info['directory']
     col, row, tw, th = tile_info['coordinates']
     nb_pairs = tile_info['number_of_pairs']
-    
-    
+
+
     #A_global = os.path.join(cfg['out_dir'],
     #                        'global_pointing_pair_%d.txt' % pair_id)
 
@@ -203,6 +208,7 @@ def process_tile(tile_info):
         fout = open('%s/stdout.log' % tile_dir, 'a', 0)  # '0' for no buffering
         sys.stdout = fout
         sys.stderr = fout
+        print 'process_tiles on %s ...' % tile_info
 
     try:
         # check that the tile is not masked
@@ -253,7 +259,7 @@ def process_tile(tile_info):
         common.remove_if_exists(os.path.join(tile_dir,'applied_minmax.txt'))
         common.remove_if_exists(os.path.join(tile_dir,'roi_color_ref.tif'))
         common.remove_if_exists(os.path.join(tile_dir,'roi_ref_crop.tif'))
-        
+
 def global_extent(tiles_full_info):
     """
     Compute the global extent from the extrema of each ply file
@@ -295,7 +301,7 @@ def compute_dsm(args):
         extremaxy = cfg['global_extent']
 
     global_xmin,global_xmax,global_ymin,global_ymax = extremaxy
-    
+
     global_y_diff = global_ymax-global_ymin
     tile_y_size = (global_y_diff)/(number_of_tiles)
 
