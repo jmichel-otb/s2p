@@ -275,6 +275,8 @@ def rectify_pair(im1, im2, rpc1, rpc2, x, y, w, h, out1, out2, A=None,
             module.
         sift_matches (optional): Nx4 numpy array containing a list of sift
             matches, in the full image coordinates frame
+        neighborhood_sift_matches : list of Nx4 numpy array containing a list of
+            sift matches from the tiles in the neighborhood
         method (default: 'rpc'): option to decide wether to use rpc of sift
             matches for the fundamental matrix estimation.
 

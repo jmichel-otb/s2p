@@ -284,6 +284,7 @@ def rectify(tile_dir, A_global, img1, rpc1, img2, rpc2, x=None, y=None,
             image. (x, y) is the top-left corner, and (w, h) are the dimensions
             of the rectangle.
         prv1 (optional): path to a preview of the reference image.
+        neighboring_tile_dir : list of the tiles in the neighborhood
     """
     # output files
     rect1 = os.path.join(tile_dir,'rectified_ref.tif')
