@@ -121,4 +121,8 @@ def matches_on_rpc_roi(im1, im2, rpc1, rpc2, x, y, w, h):
             break
         else:
             thresh_dog /= 2.0
+
+    if matches.shape[0] <= 10:
+        raise Exception('less than 10 matches')
+
     return matches
