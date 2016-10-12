@@ -56,7 +56,7 @@ def minmax_intensities(tiles_full_info):
                 if minmax[1] > max_opt:
                     max_opt = minmax[1]
 
-                global_minmax = [min_opt, max_opt]
+        global_minmax = [min_opt, max_opt]
 
         np.savetxt(min_max_file, global_minmax,
                        fmt='%6.3f')
