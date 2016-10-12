@@ -51,7 +51,7 @@ cfg['color_ply'] = True
 cfg['dsm_resolution'] = 4
 
 # number of tiles of the output digital surface model
-cfg['dsm_nb_tiles'] = 5
+cfg['dsm_sqrt_nb_tiles'] = 28
 
 # zoom out applied to input images
 cfg['subsampling_factor'] = 1
@@ -125,10 +125,6 @@ cfg['dsm_radius'] = 0
 
 # DSM interpolation parameter
 cfg['dsm_pinterp'] = 1
-
-# DSM minimum number of no-Nan cells around 
-# a cell to actually interpolate it
-cfg['dsm_min_nonan'] = 0
 
 # Tells whether we only want height_map.vrt 
 # and rpc_err.vrt (False) or some other

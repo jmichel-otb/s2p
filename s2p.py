@@ -286,14 +286,9 @@ def compute_dsm(args):
     Compute the DSMs
 
     Args:
-         - args  ( <==> [config_file,number_of_tiles,current_tile])
+         - args  ( <==> [config_file,sqrt_number_of_tiles,current_tile])
     """
-    list_of_tiles_dir = os.path.join(cfg['out_dir'],'list_of_tiles.txt')
-
-    config_file,number_of_tiles,current_tile = args
-
-    dsm_dir = os.path.join(cfg['out_dir'],'dsm')
-    out_dsm = os.path.join(dsm_dir,'dsm_%d.tif' % (current_tile) )
+    config_file,sqrt_number_of_tiles,current_tile = args
 
     if cfg['global_extent'] is None:
         extremaxy = np.loadtxt(os.path.join(cfg['out_dir'], 'global_extent.txt'))
@@ -309,15 +304,29 @@ def compute_dsm(args):
     
     global_width_pix = np.ceil( (global_xmax - global_xmin) / cfg['dsm_resolution'] )
     global_height_pix = np.ceil( (global_ymax - global_ymin) / cfg['dsm_resolution'] )
-       
-    height_pix = global_height_pix // number_of_tiles 
-    residual_rows =   global_height_pix % number_of_tiles
+        
+    number_of_tiles_h = sqrt_number_of_tiles
+    number_of_tiles_w = sqrt_number_of_tiles
     
-    ymin = global_ymin + current_tile*height_pix*cfg['dsm_resolution']
+    current_height_index = current_tile // number_of_tiles_w
+    current_width_index = current_tile % number_of_tiles_w
     
-    if (current_tile == number_of_tiles-1):
-        height_pix = height_pix + residual_rows
-
+    dsm_dir = os.path.join(cfg['out_dir'],'dsm')
+    out_dsm = os.path.join(dsm_dir,'dsm_%d_%d.tif' % (current_width_index , current_height_index) )
+    
+    height_pix = global_height_pix // number_of_tiles_h 
+    residual_h = global_height_pix %  number_of_tiles_h
+    width_pix  = global_width_pix // number_of_tiles_w 
+    residual_w = global_width_pix %  number_of_tiles_w
+    
+    ymin = global_ymin + current_height_index*height_pix*cfg['dsm_resolution']
+    xmin = global_xmin + current_width_index*width_pix*cfg['dsm_resolution']
+    
+    if (current_height_index == number_of_tiles_h-1):
+        height_pix = height_pix + residual_h
+        
+    if (current_width_index == number_of_tiles_w-1):
+        width_pix  = width_pix  + residual_w
 
     # cutting info
     x, y, w, h, z, ov, tw, th, nb_pairs = initialization.cutting(config_file)
@@ -339,19 +348,17 @@ def compute_dsm(args):
     flag = "-flag %d" % ( flags.get(cfg['dsm_option'],1) )
     radius = "-radius %d" % ( cfg['dsm_radius'] )
     pinterp = "-pinterp %d" % ( cfg['dsm_pinterp'] )
-    minnonan = "-minnonan %d" % ( cfg['dsm_min_nonan'] )
 
-    if (ymin <= global_ymax):
-        common.run("plytodsm %s %s %s %s %s %s %s %s %s %s %s %s" % (
+    if (ymin <= global_ymax) and (current_tile < number_of_tiles_h*number_of_tiles_w ):
+        common.run("plytodsm %s %s %s %s %s %s %s %s %s %s %s" % (
                                                  flag,    
                                                  radius,  
                                                  pinterp, 
-                                                 minnonan, 
                                                  cfg['dsm_resolution'], 
                                                  out_dsm, 
-                                                 global_xmin, 
+                                                 xmin, 
                                                  ymin, 
-                                                 global_width_pix, 
+                                                 width_pix, 
                                                  height_pix, 
                                                  cutsinf, 
                                                  cfg['out_dir'])) 
@@ -470,7 +477,7 @@ def execute_job(config_file,params):
         if step == 6:#"compute_dsm" :
             print 'compute_dsm ...'
             current_tile=int(tile_dir.split('_')[1]) # for instance, dsm_2 becomes 2
-            compute_dsm([config_file,cfg['dsm_nb_tiles'],current_tile])
+            compute_dsm([config_file,cfg['dsm_sqrt_nb_tiles'],current_tile])
 
         if step == 7:#"global_finalization":
             print 'global finalization...'
@@ -505,7 +512,8 @@ def list_jobs(config_file, step):
         f.close()
     elif step ==6 :             # compute dsm
         f = open(os.path.join(cfg['out_dir'],filename),'w')
-        for i in range(cfg['dsm_nb_tiles']):
+        dsm_nb_tiles = cfg['dsm_sqrt_nb_tiles']**2
+        for i in range(dsm_nb_tiles):
             f.write('dsm_'+ str(i) + ' ' + str(step) + '\n')
         f.close()
     else:
@@ -579,9 +587,10 @@ def main(config_file, step=None, clusterMode=None, misc=None):
         if 6 in steps:
             print '\ncompute dsm...'
             args = []
-            for i in range(cfg['dsm_nb_tiles']):
-                args.append([config_file, cfg['dsm_nb_tiles'], i])
-            show_progress.total = cfg['dsm_nb_tiles']
+            dsm_nb_tiles = cfg['dsm_sqrt_nb_tiles']**2
+            for i in range(dsm_nb_tiles):
+                args.append([config_file, cfg['dsm_sqrt_nb_tiles'], i])
+            show_progress.total = dsm_nb_tiles
             launch_parallel_calls(compute_dsm, args, nb_workers)
             print_elapsed_time()
 

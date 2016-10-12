@@ -402,7 +402,7 @@ static void add_ply_points_to_images(struct images *img,
 void help(char *s)
 {
 	fprintf(stderr, "usage:\n\t"
-			"%s [-c column] [-flag flag] [-radius radius] [-minnonan minnonan] [-param_inter param_inter] \
+			"%s [-c column] [-flag flag] [-radius radius] [-param_inter param_inter] \
 			resolution out_dsm xmin ymin w h \
 			rowmin steprow rowmax colmin stepcol colmax tw th root_out_dir\n", s);
 	fprintf(stderr, "\t the resolution is in meters per pixel\n");
@@ -415,7 +415,6 @@ int main(int c, char *v[])
 	int col_idx = atoi(pick_option(&c, &v, "c", "2"));
 	int flag = atoi(pick_option(&c, &v, "flag", "0"));
 	int radius = atoi(pick_option(&c, &v, "radius", "1"));
-	int minnonan = atoi(pick_option(&c, &v, "minnonan", "0"));
 	double param_inter = atof(pick_option(&c, &v, "pinterp", "1"));
 
 	// process input arguments
@@ -447,13 +446,14 @@ int main(int c, char *v[])
 	int th = atoi(v[14]);
 	char *root_out_dir=v[15];
 
-	if (flag>=6) // interpolation
+	if (flag>=6) // interpolation : need more data
 	{
-        int mult=1;
-	    xmin -= (resolution/2.0 + mult*radius*resolution);
-	    xmax += resolution/2.0 + mult*radius*resolution;
-	    ymin -= (resolution/2.0 + mult*radius*resolution);
-	    ymax += resolution/2.0 + mult*radius*resolution;
+        double mult=2.0;
+        double offset = resolution/2.0 + mult*radius*resolution;
+	    xmin -= offset;
+	    xmax += offset;
+	    ymin -= offset;
+	    ymax += offset;
 	    fprintf(stderr, "interpolation --> xmin: %20f, xmax: %20f, ymin: %20f, ymax: %20f\n", xmin,xmax,ymin,ymax);
 	}
 	else
