@@ -248,7 +248,17 @@ def process_tile(tile_info):
 
     if cfg['clean_intermediate']:
         for i in xrange(nb_pairs):
-           shutil.rmtree(os.path.join(tile_dir,'pair_%d' %(i+1)))
+            
+            pair_dir = os.path.join(tile_dir,'pair_%d' %(i+1))
+            
+            if not cfg['full_vrt']:
+                shutil.rmtree( pair_dir )
+            else:
+                shutil.move(os.path.join(pair_dir,'disp2D_crop.tif'), tile_dir)
+                shutil.rmtree( pair_dir )
+                os.makedirs(   pair_dir )
+                shutil.move(os.path.join(tile_dir,'disp2D_crop.tif'), pair_dir )
+                
         common.remove_if_exists(os.path.join(tile_dir,'roi_ref.tif'))
         common.remove_if_exists(os.path.join(tile_dir,'rpc_err.tif'))
         common.remove_if_exists(os.path.join(tile_dir,'height_map.tif'))
@@ -259,6 +269,17 @@ def process_tile(tile_info):
         common.remove_if_exists(os.path.join(tile_dir,'applied_minmax.txt'))
         common.remove_if_exists(os.path.join(tile_dir,'roi_color_ref.tif'))
         common.remove_if_exists(os.path.join(tile_dir,'roi_ref_crop.tif'))
+        common.remove_if_exists(os.path.join(tile_dir,'cloud_water_image_domain_mask.png'))
+        common.remove_if_exists(os.path.join(tile_dir,'rpc_err_rms_allsights.tif'))
+        
+        if cfg['full_vrt']:
+            for i in xrange(1,len(cfg['images'])+1):
+                common.remove_if_exists(os.path.join(tile_dir,'rpc_err_norm_sight_%d.tif' % i ))
+                common.remove_if_exists(os.path.join(tile_dir,'rpc_err_rpjvec_sight_%d.tif' % i ))
+                common.remove_if_exists(os.path.join(tile_dir,'rpc_err_vec_sight_%d.tif' % i ))
+                common.remove_if_exists(os.path.join(tile_dir,'selected_sight_%d.tif' % i ))
+            common.remove_if_exists(os.path.join(tile_dir,'nb_sights.tif'))
+
 
 def global_extent(tiles_full_info):
     """
