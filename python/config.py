@@ -126,6 +126,17 @@ cfg['dsm_radius'] = 0
 # DSM interpolation parameter
 cfg['dsm_pinterp'] = 1
 
+# if true, produce vrt
+# (height_map.vrt and rpc_err.vrt)
+# if false, nothing to produce,
+# even vrt requested by full_vrt option
+# (see below)
+cfg['no-vrt'] = False
+
+# if true, run LidarPreprocessor
+# (in installed)
+cfg['run-LidarPreprocessor'] = False
+
 # Tells whether we only want height_map.vrt 
 # and rpc_err.vrt (False) or some other
 # vrt product, sucha as nb of views per pixel, 
@@ -142,7 +153,7 @@ cfg['trg_cons'] = True
 cfg['thr_cons'] = 1
 
 # Convert vrt to plain tiffs
-cfg['vrt_to_tiff'] = True
+cfg['vrt_to_tiff'] = False
 
 # Force global extent 
 # global_extent = [xmin, xmax, ymin, ymax]

@@ -378,13 +378,13 @@ def global_finalization(tiles_full_info):
         tiles_full_info: dictionary providing all the information about the
             processed tiles
     """
-    print "timetest"
-    print_elapsed_time()
-    globalfinalization.write_vrt_files(tiles_full_info)
+    
+    if not cfg['no-vrt']:
+        globalfinalization.write_vrt_files(tiles_full_info)
     globalfinalization.write_dsm()
 
     # whole point cloud (LidarViewer format)
-    if common.which('LidarPreprocessor'):
+    if common.which('LidarPreprocessor') and cfg['run-LidarPreprocessor']:
         out = os.path.join(cfg['out_dir'], 'cloud.lidar_viewer')
         plys = []
         for tile_info in tiles_full_info:
