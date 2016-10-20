@@ -400,12 +400,12 @@ def global_finalization(tiles_full_info):
             processed tiles
     """
     
-    if not cfg['no-vrt']:
+    if not cfg['no_vrt']:
         globalfinalization.write_vrt_files(tiles_full_info)
     globalfinalization.write_dsm()
 
     # whole point cloud (LidarViewer format)
-    if common.which('LidarPreprocessor') and cfg['run-LidarPreprocessor']:
+    if common.which('LidarPreprocessor') and cfg['run_LidarPreprocessor']:
         out = os.path.join(cfg['out_dir'], 'cloud.lidar_viewer')
         plys = []
         for tile_info in tiles_full_info:

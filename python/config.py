@@ -131,11 +131,11 @@ cfg['dsm_pinterp'] = 1
 # if false, nothing to produce,
 # even vrt requested by full_vrt option
 # (see below)
-cfg['no-vrt'] = False
+cfg['no_vrt'] = False
 
 # if true, run LidarPreprocessor
 # (in installed)
-cfg['run-LidarPreprocessor'] = False
+cfg['run_LidarPreprocessor'] = False
 
 # Tells whether we only want height_map.vrt 
 # and rpc_err.vrt (False) or some other
