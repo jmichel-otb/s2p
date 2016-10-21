@@ -50,7 +50,7 @@ cfg['color_ply'] = True
 # resolution of the output digital surface model, in meters per pixel
 cfg['dsm_resolution'] = 4
 
-# number of tiles of the output digital surface model
+# squared number of tiles of the output digital surface model
 cfg['dsm_sqrt_nb_tiles'] = 28
 
 # zoom out applied to input images
@@ -95,18 +95,6 @@ cfg['disp_max'] = None
 # radius for erosion of valid disparity areas. Ignored if less than 2
 cfg['msk_erosion'] = 2
 
-# threshold (in meters) used for the fusion of two dems in triplet processing
-# It should be adapted to the zoom factor
-cfg['fusion_thresh'] = 3
-
-# set to True to keep only the pixels were the two height maps have a valid
-# height. If False, pixels with a valid height in only one of the two maps will
-# be kept.
-cfg['fusion_conservative'] = False
-
-# binary used to paste together the altitude maps of each tile
-cfg['mosaic_method'] = 'piio'
-
 # url of the srtm database mirror
 #cfg['srtm_url'] = 'http://138.231.80.250:443/srtm/tiff'
 #cfg['srtm_url'] = 'ftp://xftp.jrc.it/pub/srtmV4/tiff'
@@ -145,7 +133,7 @@ cfg['full_vrt'] = False
 
 # Tells whether (False/True) a consensus of lines of sight
 # must be built, during triangulation step
-cfg['trg_cons'] = True
+cfg['trg_cons'] = False
 
 # Give the threshold value (in meter) used
 # to build a consensus of lines of sight
