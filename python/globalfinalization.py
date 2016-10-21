@@ -76,16 +76,22 @@ def write_vrt_files(tiles_full_info):
     z = cfg['subsampling_factor']
     
     # VRT file : height map 
-    tile_composer.mosaic_stitch( os.path.join(cfg['out_dir'], 'height_map.vrt'),
+    height_map_path = os.path.join(cfg['out_dir'], 'height_map.vrt')
+    if not (os.path.isfile(height_map_path) and cfg['skip_existing']):
+        tile_composer.mosaic_stitch( height_map_path,
                                tileSizesAndPositions, 'height_map_crop.tif', fw, fh, 1, z)
                                
     # VRT file : rpc_err_rms_allsights
-    tile_composer.mosaic_stitch( os.path.join(cfg['out_dir'], 'rpc_err_rms_allsights.vrt'),
+    rpc_err_path = os.path.join(cfg['out_dir'], 'rpc_err_rms_allsights.vrt')
+    if not (os.path.isfile(rpc_err_path) and cfg['skip_existing']):
+        tile_composer.mosaic_stitch( rpc_err_path,
                                tileSizesAndPositions, 'rpc_err_rms_allsights_crop.tif', fw, fh, 1, z)
     
     if cfg['full_vrt']:
         # VRT file : nb_sights
-        tile_composer.mosaic_stitch( os.path.join(cfg['out_dir'], 'nb_sights.vrt'),
+        nb_sights_path = os.path.join(cfg['out_dir'], 'nb_sights.vrt'
+        if not (os.path.isfile(nb_sights_path) and cfg['skip_existing']):
+            tile_composer.mosaic_stitch( nb_sights_path,
                                tileSizesAndPositions, 'nb_sights_crop.tif', fw, fh, 1, z)
         
         # selected_sight_i
@@ -96,31 +102,41 @@ def write_vrt_files(tiles_full_info):
             #selected sights
             selected_sighti = 'selected_sight_%d.vrt' % img_id
             selected_sighti_crop = 'selected_sight_%d_crop.tif' % img_id
-            tile_composer.mosaic_stitch( os.path.join(cfg['out_dir'], selected_sighti),
+            selected_sighti_path = os.path.join(cfg['out_dir'], selected_sighti)
+            if not (os.path.isfile(selected_sighti_path) and cfg['skip_existing']):
+                tile_composer.mosaic_stitch( selected_sighti_path,
                                    tileSizesAndPositions, selected_sighti_crop, fw, fh, 1, z)
              
             # err by sight                   
             rpc_err_sighti = 'rpc_err_norm_sight_%d.vrt' % img_id
             rpc_err_sighti_crop = 'rpc_err_norm_sight_%d_crop.tif' % img_id
-            tile_composer.mosaic_stitch( os.path.join(cfg['out_dir'], rpc_err_sighti),
+            rpc_err_sighti_path = os.path.join(cfg['out_dir'], rpc_err_sighti)
+            if not (os.path.isfile(rpc_err_sighti_path) and cfg['skip_existing']):
+                tile_composer.mosaic_stitch( rpc_err_sighti_path,
                                    tileSizesAndPositions, rpc_err_sighti_crop, fw, fh, 1, z)
             # err vectors by sight
             rpc_err_veci = 'rpc_err_vec_sight_%d.vrt' % img_id
             rpc_err_veci_crop = 'rpc_err_vec_sight_%d_crop.tif' % img_id
-            tile_composer.mosaic_stitch( os.path.join(cfg['out_dir'], rpc_err_veci),
+            rpc_err_veci_path = os.path.join(cfg['out_dir'], rpc_err_veci)
+            if not (os.path.isfile(rpc_err_veci_path) and cfg['skip_existing']):
+                tile_composer.mosaic_stitch( rpc_err_veci_path,
                                    tileSizesAndPositions, rpc_err_veci_crop, fw, fh, 3, z)
                                    
             # reprojected err vectors by sight
             rpc_err_vec_rpji = 'rpc_err_rpjvec_sight_%d.vrt' % img_id
             rpc_err_vec_rpji_crop = 'rpc_err_rpjvec_sight_%d_crop.tif' % img_id
-            tile_composer.mosaic_stitch( os.path.join(cfg['out_dir'], rpc_err_vec_rpji),
+            rpc_err_vec_rpji_path = os.path.join(cfg['out_dir'], rpc_err_vec_rpji)
+            if not (os.path.isfile(rpc_err_vec_rpji_path) and cfg['skip_existing']):
+                tile_composer.mosaic_stitch( rpc_err_vec_rpji_path,
                                    tileSizesAndPositions, rpc_err_vec_rpji_crop, fw, fh, 3, z)
                                    
         # 2D disparities (if originaly computed in epipolar geometry)                     
         for pair_id in xrange(1,nb_pairs+1):                     
             disp2Di = 'disp2D_pair%d.vrt' % pair_id
             disp2Di_crop = 'pair_%d/disp2D_crop.tif' % pair_id
-            tile_composer.mosaic_stitch( os.path.join(cfg['out_dir'], disp2Di),
+            disp2Di_path = os.path.join(cfg['out_dir'], disp2Di)
+            if not (os.path.isfile(disp2Di_path) and cfg['skip_existing']):
+                tile_composer.mosaic_stitch( disp2Di_path,
                                    tileSizesAndPositions, disp2Di_crop, fw, fh, 3, z)
                                    
         # Cleaning
