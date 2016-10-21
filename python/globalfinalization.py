@@ -89,7 +89,7 @@ def write_vrt_files(tiles_full_info):
     
     if cfg['full_vrt']:
         # VRT file : nb_sights
-        nb_sights_path = os.path.join(cfg['out_dir'], 'nb_sights.vrt'
+        nb_sights_path = os.path.join(cfg['out_dir'], 'nb_sights.vrt')
         if not (os.path.isfile(nb_sights_path) and cfg['skip_existing']):
             tile_composer.mosaic_stitch( nb_sights_path,
                                tileSizesAndPositions, 'nb_sights_crop.tif', fw, fh, 1, z)
