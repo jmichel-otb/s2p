@@ -269,7 +269,6 @@ def process_tile(tile_info):
         common.remove_if_exists(os.path.join(tile_dir,'applied_minmax.txt'))
         common.remove_if_exists(os.path.join(tile_dir,'roi_color_ref.tif'))
         common.remove_if_exists(os.path.join(tile_dir,'roi_ref_crop.tif'))
-        common.remove_if_exists(os.path.join(tile_dir,'cloud_water_image_domain_mask.png'))
         common.remove_if_exists(os.path.join(tile_dir,'rpc_err_rms_allsights.tif'))
         
         if cfg['full_vrt']:
