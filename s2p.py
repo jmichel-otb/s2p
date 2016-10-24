@@ -286,15 +286,17 @@ def global_extent(tiles_full_info):
     """
     xmin, xmax, ymin, ymax = float('inf'), -float('inf'), float('inf'), -float('inf')
 
-    for tile in tiles_full_info:
-        plyextrema_file = os.path.join(tile['directory'], 'plyextrema.txt')
+    if not cfg['global_extent']:
 
-        if (os.path.exists(plyextrema_file)):
-            extremaxy = np.loadtxt(plyextrema_file)
-            xmin = min(xmin, extremaxy[0])
-            xmax = max(xmax, extremaxy[1])
-            ymin = min(ymin, extremaxy[2])
-            ymax = max(ymax, extremaxy[3])
+        for tile in tiles_full_info:
+            plyextrema_file = os.path.join(tile['directory'], 'plyextrema.txt')
+
+            if (os.path.exists(plyextrema_file)):
+                extremaxy = np.loadtxt(plyextrema_file)
+                xmin = min(xmin, extremaxy[0])
+                xmax = max(xmax, extremaxy[1])
+                ymin = min(ymin, extremaxy[2])
+                ymax = max(ymax, extremaxy[3])
 
     global_extent = [xmin, xmax, ymin, ymax]
     np.savetxt(os.path.join(cfg['out_dir'], 'global_extent.txt'), global_extent,
@@ -310,10 +312,8 @@ def compute_dsm(args):
     """
     config_file,sqrt_number_of_tiles,current_tile = args
 
-    if cfg['global_extent'] is None:
-        extremaxy = np.loadtxt(os.path.join(cfg['out_dir'], 'global_extent.txt'))
-    else :
-        extremaxy = cfg['global_extent']
+    # get global extrema
+    extremaxy = np.loadtxt(os.path.join(cfg['out_dir'], 'global_extent.txt'))
 
     global_xmin,global_xmax,global_ymin,global_ymax = extremaxy
 
