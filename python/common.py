@@ -14,6 +14,7 @@ import datetime
 import tempfile
 import subprocess
 import numpy as np
+import shutil
 
 
 from config import cfg
@@ -38,6 +39,14 @@ def remove_if_exists(target):
         os.remove(target)
     except OSError:
         pass
+        
+        
+def rmtree_if_exists(target):
+    try:
+        shutil.rmtree(target)
+    except OSError:
+        pass
+
 
 def garbage_cleanup():
     """

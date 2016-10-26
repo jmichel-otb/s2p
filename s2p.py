@@ -252,10 +252,10 @@ def process_tile(tile_info):
             pair_dir = os.path.join(tile_dir,'pair_%d' %(i+1))
             
             if not cfg['full_vrt']:
-                shutil.rmtree( pair_dir )
+                common.rmtree_if_exists( pair_dir )
             else:
                 shutil.move(os.path.join(pair_dir,'disp2D_crop.tif'), tile_dir)
-                shutil.rmtree( pair_dir )
+                common.rmtree_if_exists( pair_dir )
                 os.makedirs(   pair_dir )
                 shutil.move(os.path.join(tile_dir,'disp2D_crop.tif'), pair_dir )
                 

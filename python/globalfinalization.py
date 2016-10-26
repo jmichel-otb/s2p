@@ -147,8 +147,8 @@ def write_vrt_files(tiles_full_info):
                 nb_pairs = tile_info['number_of_pairs']
                 
                 for pair_id in xrange(1, nb_pairs + 1):
-                    pair_dir = os.path.join(tile_dir,'pair_%d' %(pair_id+1))
-                    shutil.rmtree( pair_dir )
+                    pair_dir = os.path.join(tile_dir,'pair_%d' %(pair_id))
+                    common.rmtree_if_exists( pair_dir )
                     
                 # height maps
                 common.remove_if_exists(os.path.join(tile_dir,'height_map_crop.tif'))
@@ -197,7 +197,7 @@ def write_dsm():
         if not (os.path.isfile(final_dsm_tif) and cfg['skip_existing']):
             common.run('gdal_translate %s %s' % (final_dsm, final_dsm_tif))
         if cfg['clean_intermediate']:
-            shutil.rmtree(os.path.join(cfg['out_dir'],'dsm'))
+            common.rmtree_if_exists(os.path.join(cfg['out_dir'],'dsm'))
             common.remove_if_exists(final_dsm);
                           
 
