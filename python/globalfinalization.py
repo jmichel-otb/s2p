@@ -179,7 +179,7 @@ def write_vrt_files(tiles_full_info):
                 common.remove_if_exists(os.path.join(cfg['out_dir'],'nb_sights.vrt'))
                 
                 for pair_id in xrange(1, nb_pairs + 1):
-                    disp2D_path = os.path.join(cfg['out_dir'],'disp2D_pair%d.vrt' %(pair_id+1))
+                    disp2D_path = os.path.join(cfg['out_dir'],'disp2D_pair%d.vrt' %(pair_id))
                     common.remove_if_exists(disp2D_path)
             
 
