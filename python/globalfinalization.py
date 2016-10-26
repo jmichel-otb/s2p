@@ -189,10 +189,13 @@ def write_dsm():
     """
     dsm_pieces = os.path.join(cfg['out_dir'], 'dsm/dsm_*')
     final_dsm = os.path.join(cfg['out_dir'], 'dsm.vrt')
-    common.run("gdalbuildvrt %s %s" % (final_dsm, dsm_pieces))
+    if not (os.path.isfile(final_dsm) and cfg['skip_existing']):
+        common.run("gdalbuildvrt %s %s" % (final_dsm, dsm_pieces))
 
     if cfg['vrt_to_tiff']:
-        common.run('gdal_translate %s %s' % (final_dsm, os.path.splitext(final_dsm)[0]+".tif"))
+        final_dsm_tif = os.path.splitext(final_dsm)[0]+".tif"
+        if not (os.path.isfile(final_dsm_tif) and cfg['skip_existing']):
+            common.run('gdal_translate %s %s' % (final_dsm, final_dsm_tif))
         if cfg['clean_intermediate']:
             shutil.rmtree(os.path.join(cfg['out_dir'],'dsm'))
             common.remove_if_exists(final_dsm);

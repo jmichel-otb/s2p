@@ -284,23 +284,26 @@ def global_extent(tiles_full_info):
     """
     Compute the global extent from the extrema of each ply file
     """
-    xmin, xmax, ymin, ymax = float('inf'), -float('inf'), float('inf'), -float('inf')
+    
+    global_extent_path = os.path.join(cfg['out_dir'], 'global_extent.txt')
+    
+    if not (os.path.isfile(global_extent_path) and cfg['skip_existing']):
+        
+        if not cfg['global_extent']:
 
-    if not cfg['global_extent']:
+            xmin, xmax, ymin, ymax = float('inf'), -float('inf'), float('inf'), -float('inf')
+            for tile in tiles_full_info:
+                plyextrema_file = os.path.join(tile['directory'], 'plyextrema.txt')
 
-        for tile in tiles_full_info:
-            plyextrema_file = os.path.join(tile['directory'], 'plyextrema.txt')
+                if (os.path.exists(plyextrema_file)):
+                    extremaxy = np.loadtxt(plyextrema_file)
+                    xmin = min(xmin, extremaxy[0])
+                    xmax = max(xmax, extremaxy[1])
+                    ymin = min(ymin, extremaxy[2])
+                    ymax = max(ymax, extremaxy[3])
 
-            if (os.path.exists(plyextrema_file)):
-                extremaxy = np.loadtxt(plyextrema_file)
-                xmin = min(xmin, extremaxy[0])
-                xmax = max(xmax, extremaxy[1])
-                ymin = min(ymin, extremaxy[2])
-                ymax = max(ymax, extremaxy[3])
-
-    global_extent = [xmin, xmax, ymin, ymax]
-    np.savetxt(os.path.join(cfg['out_dir'], 'global_extent.txt'), global_extent,
-               fmt='%6.3f')
+        global_extent = [xmin, xmax, ymin, ymax]
+        np.savetxt(global_extent_path, global_extent, fmt='%6.3f')
 
 
 def compute_dsm(args):
