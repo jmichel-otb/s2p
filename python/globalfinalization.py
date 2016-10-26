@@ -139,48 +139,48 @@ def write_vrt_files(tiles_full_info):
                 tile_composer.mosaic_stitch( disp2Di_path,
                                    tileSizesAndPositions, disp2Di_crop, fw, fh, 3, z)
                                    
-        # Cleaning
-        if(cfg['clean_intermediate'] and cfg['vrt_to_tiff']):
+    # Cleaning
+    if(cfg['clean_intermediate'] and cfg['vrt_to_tiff']):
+        
+        for tile_info in tiles_full_info:
+            tile_dir = tile_info['directory']
+            nb_pairs = tile_info['number_of_pairs']
             
-            for tile_info in tiles_full_info:
-                tile_dir = tile_info['directory']
-                nb_pairs = tile_info['number_of_pairs']
+            for pair_id in xrange(1, nb_pairs + 1):
+                pair_dir = os.path.join(tile_dir,'pair_%d' %(pair_id))
+                common.rmtree_if_exists( pair_dir )
                 
-                for pair_id in xrange(1, nb_pairs + 1):
-                    pair_dir = os.path.join(tile_dir,'pair_%d' %(pair_id))
-                    common.rmtree_if_exists( pair_dir )
-                    
-                # height maps
-                common.remove_if_exists(os.path.join(tile_dir,'height_map_crop.tif'))
-                # rpc_err_all
-                common.remove_if_exists(os.path.join(tile_dir,'rpc_err_rms_allsights_crop.tif'))
-                
-                # other tif
-                if cfg['full_vrt']:
-                    for i in xrange(1,len(cfg['images'])+1):
-                        common.remove_if_exists(os.path.join(tile_dir,'rpc_err_norm_sight_%d_crop.tif' % i ))
-                        common.remove_if_exists(os.path.join(tile_dir,'rpc_err_rpjvec_sight_%d_crop.tif' % i ))
-                        common.remove_if_exists(os.path.join(tile_dir,'rpc_err_vec_sight_%d_crop.tif' % i ))
-                        common.remove_if_exists(os.path.join(tile_dir,'selected_sight_%d_crop.tif' % i ))
-                    common.remove_if_exists(os.path.join(tile_dir,'nb_sights_crop.tif'))
-                
-            # height maps vrt
-            common.remove_if_exists(os.path.join(cfg['out_dir'],'height_map.vrt'))
-            # rpc_err_all vrt
-            common.remove_if_exists(os.path.join(cfg['out_dir'],'rpc_err_rms_allsights.vrt'))
+            # height maps
+            common.remove_if_exists(os.path.join(tile_dir,'height_map_crop.tif'))
+            # rpc_err_all
+            common.remove_if_exists(os.path.join(tile_dir,'rpc_err_rms_allsights_crop.tif'))
             
-            # other vrt
+            # other tif
             if cfg['full_vrt']:
                 for i in xrange(1,len(cfg['images'])+1):
-                    common.remove_if_exists(os.path.join(cfg['out_dir'],'rpc_err_norm_sight_%d.vrt' % i ))
-                    common.remove_if_exists(os.path.join(cfg['out_dir'],'rpc_err_rpjvec_sight_%d.vrt' % i ))
-                    common.remove_if_exists(os.path.join(cfg['out_dir'],'rpc_err_vec_sight_%d.vrt' % i ))
-                    common.remove_if_exists(os.path.join(cfg['out_dir'],'selected_sight_%d.vrt' % i ))
-                common.remove_if_exists(os.path.join(cfg['out_dir'],'nb_sights.vrt'))
-                
-                for pair_id in xrange(1, nb_pairs + 1):
-                    disp2D_path = os.path.join(cfg['out_dir'],'disp2D_pair%d.vrt' %(pair_id))
-                    common.remove_if_exists(disp2D_path)
+                    common.remove_if_exists(os.path.join(tile_dir,'rpc_err_norm_sight_%d_crop.tif' % i ))
+                    common.remove_if_exists(os.path.join(tile_dir,'rpc_err_rpjvec_sight_%d_crop.tif' % i ))
+                    common.remove_if_exists(os.path.join(tile_dir,'rpc_err_vec_sight_%d_crop.tif' % i ))
+                    common.remove_if_exists(os.path.join(tile_dir,'selected_sight_%d_crop.tif' % i ))
+                common.remove_if_exists(os.path.join(tile_dir,'nb_sights_crop.tif'))
+            
+        # height maps vrt
+        common.remove_if_exists(os.path.join(cfg['out_dir'],'height_map.vrt'))
+        # rpc_err_all vrt
+        common.remove_if_exists(os.path.join(cfg['out_dir'],'rpc_err_rms_allsights.vrt'))
+        
+        # other vrt
+        if cfg['full_vrt']:
+            for i in xrange(1,len(cfg['images'])+1):
+                common.remove_if_exists(os.path.join(cfg['out_dir'],'rpc_err_norm_sight_%d.vrt' % i ))
+                common.remove_if_exists(os.path.join(cfg['out_dir'],'rpc_err_rpjvec_sight_%d.vrt' % i ))
+                common.remove_if_exists(os.path.join(cfg['out_dir'],'rpc_err_vec_sight_%d.vrt' % i ))
+                common.remove_if_exists(os.path.join(cfg['out_dir'],'selected_sight_%d.vrt' % i ))
+            common.remove_if_exists(os.path.join(cfg['out_dir'],'nb_sights.vrt'))
+            
+            for pair_id in xrange(1, nb_pairs + 1):
+                disp2D_path = os.path.join(cfg['out_dir'],'disp2D_pair%d.vrt' %(pair_id))
+                common.remove_if_exists(disp2D_path)
             
 
 def write_dsm():
