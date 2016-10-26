@@ -7,9 +7,15 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <geotiff/xtiffio.h>
-#include <geotiff/geotiffio.h>
-#include <geotiff/geo_tiffp.h>
+/* #include <geotiff/xtiffio.h> */
+/* #include <geotiff/geotiffio.h> */
+/* #include <geotiff/geo_tiffp.h> */
+
+#include "gdal.h"
+#include "ogr_api.h"
+#include "ogr_srs_api.h"
+#include "cpl_conv.h"
+#include "cpl_string.h"
 
 #include "iio.h"
 #include "lists.c"
@@ -61,34 +67,34 @@ static int get_utm_zone_index_for_geotiff(char *utm_zone)
     return out;
 }
 
-void set_geotif_header(char *tiff_fname, char *utm_zone, float xoff,
-        float yoff, float scale)
-{
-    // open tiff file
-    TIFF *tif = XTIFFOpen(tiff_fname, "r+");
-    if (!tif)
-        fail("failed in XTIFFOpen\n");
+/* void set_geotif_header(char *tiff_fname, char *utm_zone, float xoff, */
+/*         float yoff, float scale) */
+/* { */
+/*     // open tiff file */
+/*     TIFF *tif = XTIFFOpen(tiff_fname, "r+"); */
+/*     if (!tif) */
+/*         fail("failed in XTIFFOpen\n"); */
 
-    GTIF *gtif = GTIFNew(tif);
-    if (!gtif)
-        fail("failed in GTIFNew\n");
+/*     GTIF *gtif = GTIFNew(tif); */
+/*     if (!gtif) */
+/*         fail("failed in GTIFNew\n"); */
 
-    // write TIFF tags
-    double pixsize[3] = {scale, scale, 0.0};
-    TIFFSetField(tif, GTIFF_PIXELSCALE, 3, pixsize);
+/*     // write TIFF tags */
+/*     double pixsize[3] = {scale, scale, 0.0}; */
+/*     TIFFSetField(tif, GTIFF_PIXELSCALE, 3, pixsize); */
 
-    double tiepoint[6] = {0.0, 0.0, 0.0, xoff, yoff, 0.0};
-    TIFFSetField(tif, GTIFF_TIEPOINTS, 6, tiepoint);
+/*     double tiepoint[6] = {0.0, 0.0, 0.0, xoff, yoff, 0.0}; */
+/*     TIFFSetField(tif, GTIFF_TIEPOINTS, 6, tiepoint); */
 
-    // write GEOTIFF keys
-    int utm_ind = get_utm_zone_index_for_geotiff(utm_zone);
-    GTIFKeySet(gtif, ProjectedCSTypeGeoKey, TYPE_SHORT, 1, utm_ind);
-    GTIFWriteKeys(gtif);
+/*     // write GEOTIFF keys */
+/*     int utm_ind = get_utm_zone_index_for_geotiff(utm_zone); */
+/*     GTIFKeySet(gtif, ProjectedCSTypeGeoKey, TYPE_SHORT, 1, utm_ind); */
+/*     GTIFWriteKeys(gtif); */
 
-    // free and close
-    GTIFFree(gtif);
-    XTIFFClose(tif);
-}
+/*     // free and close */
+/*     GTIFFree(gtif); */
+/*     XTIFFClose(tif); */
+/* } */
 
 
 static bool parse_property_line(struct ply_property *t, char *buf)
@@ -146,20 +152,20 @@ int compare (const void * a, const void * b)
 {
     HeightPosition * HPa = (HeightPosition *) a;
     HeightPosition * HPb = (HeightPosition *) b;
-    
+
     return HPa->z - HPb->z;
 }
 
 double weight(HeightPosition pos, Position center_pos, unsigned int flag,double pinterp)
 {
     double eps=10e-3;
-    
+
     double d = pow(center_pos.x-pos.x,2.0)+pow(center_pos.y-pos.y,2.0);
     d = sqrt(d);
-    
-    switch (flag) 
+
+    switch (flag)
     {
-	case 6: 
+	case 6:
 	    return 1.0/(d+eps);
 	case 7:
 	    return exp(-pinterp*d*d);
@@ -173,8 +179,8 @@ double weight(HeightPosition pos, Position center_pos, unsigned int flag,double 
 static void add_height_to_images(struct images *x, int i, int j, Position pos, double v, int flag)
 {
     uint64_t k = (uint64_t) x->w * j + i;
-    
-    switch (flag) 
+
+    switch (flag)
     {
 	case -3: // just count the number of occurrences
 	{
@@ -190,7 +196,7 @@ static void add_height_to_images(struct images *x, int i, int j, Position pos, d
                 x->heipos[k] = xmalloc(x->cnt[k]*sizeof(HeightPosition));
                 x->cnt[k]=0.0;
             }
-            
+
             x->heipos[k][(int) x->cnt[k]].x = pos.x;
             x->heipos[k][(int) x->cnt[k]].y = pos.y;
             x->heipos[k][(int) x->cnt[k]].z = v;
@@ -201,13 +207,13 @@ static void add_height_to_images(struct images *x, int i, int j, Position pos, d
     }
 }
 
-static void synth_heights(struct images *x, int i, int j, int flag, 
+static void synth_heights(struct images *x, int i, int j, int flag,
                           double pinterp, double resolution)
 {
     uint64_t k = (uint64_t) x->w * j + i;
-    
-    switch (flag) 
-    {	   	    
+
+    switch (flag)
+    {
         case 1: // mean
         {
             if (!x->is_empty[k])
@@ -215,7 +221,7 @@ static void synth_heights(struct images *x, int i, int j, int flag,
                 double sum=0.,n=0.,dist;
                 for(int t=0;t<x->cnt[k];t++)
                 {
-                    dist = MAX( abs(x->heipos[k][t].x-x->cell_pos[k].x) , 
+                    dist = MAX( abs(x->heipos[k][t].x-x->cell_pos[k].x) ,
                                 abs(x->heipos[k][t].y-x->cell_pos[k].y) );
                     if (dist <= resolution/2.0)
                     {
@@ -272,7 +278,7 @@ static void synth_heights(struct images *x, int i, int j, int flag,
         }
         break;
     }
-    
+
     if (flag>=6)// weighted by dist from center of cell
     {
         double w;
@@ -315,7 +321,7 @@ int get_record(FILE *f_in, int isbin, struct ply_property *t, int n, double *dat
                              break; }
             }
         }
-    } 
+    }
     else {
         int i=0;
         while (i < n && !feof(f_in)) {
@@ -352,13 +358,13 @@ static void add_ply_points_to_images(struct images *img,
 	double *data = (double *) malloc(n*sizeof(double));
 	double center_x,center_y,d;
 	while ( n == get_record(f, isbin, t, n, data) ) {
-        
+
         Position pos;
 	    pos.x=data[0];
 	    pos.y=-data[1];
-        
+
 	    double dist;
-	    uint64_t k; 
+	    uint64_t k;
         int ii = rescale_double_to_int(pos.x, xmin, resolution);
 	    int jj = rescale_double_to_int(pos.y, -ymax, resolution);
         int neigh = radius+5;
@@ -369,15 +375,15 @@ static void add_ply_points_to_images(struct images *img,
 	      for (int i = 0; i < img->w; i++)*/
             {
                 k = img->w * j + i;
-                
+
                 dist = MAX( abs(pos.x-img->cell_pos[k].x) , abs(pos.y-img->cell_pos[k].y) );
-                
+
                 if (dist <= resolution/2.0)
                 {
                     img->is_empty[k]=false;
                     //printf("[%d %d]  A%d %dA\n",ii,jj,i,j);
                 }
-                
+
                 if (dist <= resolution/2.0 + radius*resolution)
                 {
                     //printf("(%d %d) %f %f %f %f   %f %f\n",i,j,img->cell_pos[k].x,img->cell_pos[k].y,pos.x,pos.y,dist,resolution/2.0 + radius*resolution);
@@ -424,7 +430,7 @@ int main(int c, char *v[])
 	}
 	double resolution = atof(v[1]);
 	char *out_dsm = v[2];
-	
+
 	double xmin = atof(v[3]);
 	double ymin = atof(v[4]);
 	int w = atoi(v[5]);
@@ -454,35 +460,35 @@ int main(int c, char *v[])
 	// process each filename to determine x, y extremas and store the
 	// filenames in a list of strings, to be able to open the files again
 	FILE* ply_extrema_file = NULL;
-	
+
 	char ply[1000];
 	char ply_extrema[1000];
 	char utm[3];
-	
+
 	float local_xmin,local_xmax,local_ymin,local_ymax;
-	
+
 	struct list *l = NULL;
-	
+
 	// From the list of tiles, find each ply file
 	uint64_t nbply_pushed=0;
-    
-    
+
+
     FILE* cutinfo_file = fopen(cutinfo, "r");
-    
+
     if (cutinfo_file)
     {
         int rowmin,steprow,rowmax;
         int colmin,stepcol,colmax;
         int tw,th,row,col;
         char root_out_dir[1000];
-        
+
         while (
-        
-            fscanf(cutinfo_file, "%d %d %d %d %d %d %d %d %s\n",  
-                &rowmin,&steprow,&rowmax,       
-                &colmin,&stepcol,&colmax,    
+
+            fscanf(cutinfo_file, "%d %d %d %d %d %d %d %d %s\n",
+                &rowmin,&steprow,&rowmax,
+                &colmin,&stepcol,&colmax,
                 &tw,&th,root_out_dir) != EOF
-                
+
               )
         {
             for(row=rowmin;row<=rowmax;row+=steprow)
@@ -490,8 +496,8 @@ int main(int c, char *v[])
                 {
                    //strtok(tile_dir, "\n");
                    sprintf(ply_extrema,"%s/tile_%d_%d_row_%d/col_%d/plyextrema.txt",root_out_dir,tw,th,row,col);
-                   
-                   // Now, find the extent of a given ply file, 
+
+                   // Now, find the extent of a given ply file,
                    // specified by [local_xmin local_xmax local_ymin local_ymax]
                    ply_extrema_file = fopen(ply_extrema, "r");
                    if (ply_extrema_file)
@@ -506,7 +512,7 @@ int main(int c, char *v[])
                             sprintf(ply,"%s/tile_%d_%d_row_%d/col_%d/cloud.ply",root_out_dir,tw,th,row,col);
                             // Record UTM zone
                             FILE *ply_file = fopen(ply, "r");
-                            if (ply_file) 
+                            if (ply_file)
                             {
                                 l = push(l, ply);
                                 nbply_pushed++;
@@ -522,20 +528,20 @@ int main(int c, char *v[])
                    else
                     fprintf(stderr,"WARNING 1 : can not open file %s\n",ply_extrema);
                 } //end for loops
-        }        
+        }
         fclose(cutinfo_file);
     }
     else
         fprintf(stderr, "WARNING 3 : can not open file \"%s\"\n", cutinfo);
-		
+
 	if (nbply_pushed == 0)
 	{
 		fprintf(stderr, "ERROR : no ply file pushed\n");
 		return 1;
 	}
-	
+
 	struct list *begin = l;
-	
+
 	struct images img;
 	img.w = w;
 	img.h = h;
@@ -556,9 +562,9 @@ int main(int c, char *v[])
 		img.pixel_value[k] = 0;
 		img.heipos[k] = NULL;
 	    }
-	
+
 	printf("%d %d %d\n",w,h,img.is_empty[0]);
-	
+
 	l=begin;
 	int n=0;
 	while (l != NULL)
@@ -577,21 +583,70 @@ int main(int c, char *v[])
 	    add_ply_points_to_images(&img, xmin, xmax, ymin, ymax, radius,resolution, utm, l->current, col_idx,-2);
 	    l = l->next;
 	}
-	
-	// heights synthesis 
+
+	// heights synthesis
 	for (int j = 0; j < img.h; j++)
 	  for (int i = 0; i < img.w; i++)
 	    synth_heights(&img,i,j,flag,param_inter,resolution);
-	
-	
+
+
 	// set unknown values to NAN
 	for (uint64_t i = 0; i < (uint64_t) img.w*img.h; i++)
 		if (!img.cnt[i])
 			img.pixel_value[i] = NAN;
-	    
-	iio_save_image_double(out_dsm, img.pixel_value, img.w, img.h);
-	set_geotif_header(out_dsm, utm, xmin_orig, ymax_orig, resolution);
-	
+
+	/* iio_save_image_double(out_dsm, img.pixel_value, img.w, img.h); */
+	/* set_geotif_header(out_dsm, utm, xmin_orig, ymax_orig, resolution); */
+
+    // open the input image
+    GDALAllRegister();
+    GDALDatasetH hDstDS;
+    char **papszOptions = NULL;
+    const char *pszFormat = "GTiff";
+    GDALDriverH hDriver = GDALGetDriverByName( pszFormat );
+
+    hDstDS = GDALCreate( hDriver, out_dsm,
+                         img.w, img.h, 1, GDT_Float64,
+                         papszOptions );
+
+    double adfGeoTransform[6] = { xmin_orig, resolution, 0, ymin_orig, 0, -resolution };
+    OGRSpatialReferenceH hSRS;
+    char *pszSRS_WKT = NULL;
+    GDALRasterBandH hBand;
+
+    GByte abyRaster[512*512];
+
+    GDALSetGeoTransform( hDstDS, adfGeoTransform );
+    hSRS = OSRNewSpatialReference( NULL );
+
+    char utmNumber[2];
+    utmNumber[0] = utm[0];
+    utmNumber[1] = utm[1];
+    int nZone = atoi(utmNumber);
+    int bNorth;
+
+    if (utm[2] == 'N')
+    {
+        bNorth = TRUE;
+    }
+    else
+    {
+        bNorth = FALSE;
+    }
+
+    OSRSetUTM( hSRS, nZone, bNorth );
+    OSRSetWellKnownGeogCS( hSRS, "WGS84" );
+    OSRExportToWkt( hSRS, &pszSRS_WKT );
+    OSRDestroySpatialReference( hSRS );
+    GDALSetProjection( hDstDS, pszSRS_WKT );
+    CPLFree( pszSRS_WKT );
+    hBand = GDALGetRasterBand( hDstDS, 1 );
+    GDALRasterIO( hBand, GF_Write, 0, 0, img.w, img.h,
+                  img.pixel_value, img.w, img.h, GDT_Float64,
+                  0, 0 );
+    /* Once we're done, close properly the dataset */
+    GDALClose( hDstDS );
+
 	free(img.cnt);
 	free(img.is_empty);
 	free(img.pixel_value);

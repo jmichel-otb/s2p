@@ -5,6 +5,7 @@ LDLIBS = -lstdc++
 IIOLIBS = $(TIFDIR)/lib/libtiff.a -lz -lpng -ljpeg -lm
 GEOLIBS = -lgeotiff -ltiff
 FFTLIBS = -lfftw3f -lfftw3
+GDALLIB = -lgdal
 
 ifeq ($(CC), gcc)
 	CFLAGS += -fopenmp
@@ -160,11 +161,11 @@ $(BINDIR)/watermask: $(SRCDIR)/iio.o $(SRCDIR)/Geoid.o\
 	$(SRCDIR)/xmalloc.c $(SRCDIR)/pickopt.c $(SRCDIR)/rpc.c $(SRCDIR)/srtm4.c\
 	$(SRCDIR)/iio.h $(SRCDIR)/parsenumbers.c
 	$(C99) $(CFLAGS) $(SRCDIR)/iio.o $(SRCDIR)/Geoid.o $(SRCDIR)/geoid_height_wrapper.o $(SRCDIR)/watermask.c $(IIOLIBS) $(LDLIBS) -o $@
-	
+
 $(BINDIR)/disp_to_heights: $(SRCDIR)/iio.o $(SRCDIR)/rpc.o c/disp_to_heights.c c/vvector.h c/iio.h c/rpc.h c/read_matrix.c
 	$(C99) $(CFLAGS) $(SRCDIR)/iio.o $(SRCDIR)/rpc.o c/disp_to_heights.c $(IIOLIBS) -o $@
-	
-$(BINDIR)/nan_generator: $(SRCDIR)/iio.o c/nan_generator.c c/iio.h  
+
+$(BINDIR)/nan_generator: $(SRCDIR)/iio.o c/nan_generator.c c/iio.h
 	$(C99) $(CFLAGS) $(SRCDIR)/iio.o c/nan_generator.c $(IIOLIBS) -o $@
 
 $(BINDIR)/colormesh: $(SRCDIR)/iio.o $(SRCDIR)/rpc.o $(SRCDIR)/geographiclib_wrapper.o $(SRCDIR)/DMS.o $(SRCDIR)/GeoCoords.o $(SRCDIR)/MGRS.o\
@@ -179,7 +180,7 @@ $(BINDIR)/plyextrema: $(SRCDIR)/plyextrema.c $(SRCDIR)/iio.o
 	$(C99) $(CFLAGS) $^ -o $@ $(IIOLIBS) $(GEOLIBS)
 
 $(BINDIR)/plytodsm: $(SRCDIR)/plytodsm.c $(SRCDIR)/iio.o
-	$(C99) $(CFLAGS) $^ -o $@ $(IIOLIBS) $(GEOLIBS)
+	$(C99) $(CFLAGS) $^ -o $@ $(IIOLIBS) $(GEOLIBS) $(GDALLIB)
 
 
 # GEOGRAPHICLIB STUFF
