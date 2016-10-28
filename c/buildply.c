@@ -1,5 +1,6 @@
 #include <inttypes.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "iio.h"
 #include "coordconvert.h"
 
@@ -13,10 +14,11 @@ static void get_utm_coord(double *out, double lat, double lon, double alt, int z
 }
 
 void write_ply_header(FILE* f, uint64_t npoints, int zone,
-        bool hem, bool colors, bool normals)
+        bool hem, bool colors)
 {
     fprintf(f, "ply\n");
-    fprintf(f, "format binary_little_endian 1.0\n");
+    //fprintf(f, "format binary_little_endian 1.0\n");
+    fprintf(f, "format ascii 1.0\n");
     fprintf(f, "comment created by S2P\n");
     if (zone >= 0)
         fprintf(f, "comment projection: UTM %i%s\n", zone, (hem ? "N" : "S"));
@@ -32,17 +34,50 @@ void write_ply_header(FILE* f, uint64_t npoints, int zone,
     fprintf(f, "end_header\n");
 }
 
+
+void help(char *s)
+{
+    fprintf(stderr, "\t usage: %s out.ply ecef_coord_crop.tif [roi_color_ref_crop.tif]", s);
+}
+
 int main(int c, char *v[])
 {
 
+    if (!( (c==3) || (c==4) ) ) {
+        help(*v);
+        return 1;
+    }
+    
+    bool there_is_color=false;
+    if (c==4)
+        there_is_color = true;
+    
     // parse the remaining arguments
     char *fname_ply = v[1];
     char *fname_ecef = v[2];
+    char *fname_colors;
+    if (there_is_color)
+        fname_colors = v[3];
 
     // read input images
     int w, h, pd;
     double *ecef = iio_read_image_double_vec(fname_ecef, &w, &h, &pd);
-    //printf("%d %d %d\n",w,h,pd);
+    int wc, hc, pdc;
+    double *clr;
+    if (there_is_color)
+         clr = iio_read_image_double_vec(fname_colors, &wc, &hc, &pdc);
+         
+    if ( (w != wc) || (h != hc) ) 
+    { 
+        printf("color and ecef image size mismatch\n");
+        return 1;
+    }
+    if (pd != 3) 
+    {
+        printf("ecef image must have 3 bands\n");
+        return 1;
+    }
+        
     int zone=-1;
     bool hem;
 
@@ -79,10 +114,13 @@ int main(int c, char *v[])
     // print header for ply file
     FILE *ply_file = fopen(fname_ply, "wb");
     write_ply_header(ply_file, npoints, zone, hem, 
-                    false, false);
+                    there_is_color);
 
     // fill ply file
     size_t point_size = 3;
+    if (there_is_color)
+        point_size += 3;
+        
     double *utm_coord = (double *) malloc(point_size*sizeof(double));
     for (int y = 0; y < h; y++)
     for (int x = 0; x < w; x++) 
@@ -94,18 +132,33 @@ int main(int c, char *v[])
         
         if (ok) 
         {
+            // positions
             double lgt,lat,alt;
             ECEF_to_lgt_lat_alt(ecef[w*3*y+3*x], 
                                 ecef[w*3*y+3*x+1], 
                                 ecef[w*3*y+3*x+2],
                                 &lgt,&lat,&alt);
             get_utm_coord(utm_coord, lat, lgt, alt, zone);
-            fwrite( utm_coord, sizeof(double), point_size, ply_file);
+            
+            // colors
+            if (there_is_color)
+                for(int t=0; t<3; t++)
+                    utm_coord[t+3] = clr[w*3*y+3*x+t];
+            //fwrite( utm_coord, sizeof(double), point_size, ply_file);
+            
+            if ( !(there_is_color) )
+                fprintf(ply_file,"%f %f %f\n",utm_coord[0],utm_coord[1],utm_coord[2]);
+            else
+                fprintf(ply_file,"%f %f %f %d %d %d\n",utm_coord[0],utm_coord[1],utm_coord[2],
+                      (uint8_t) utm_coord[3], (uint8_t) utm_coord[4], (uint8_t) utm_coord[5]);
         }
     }
 
+    if (there_is_color)
+        free(clr);
     free(utm_coord);
     free(ecef);
     fclose(ply_file);
+    
     return 0;
 }
