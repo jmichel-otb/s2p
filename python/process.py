@@ -67,6 +67,7 @@ def color_crop_ref(tile_info, crop_ref, clr=None):
 
             crop_color = os.path.join(tile_dir , 'roi_color_ref.tif')
             if clr is not None:
+                print "chrisbavard1"
                 triangulation.colorize(crop_ref, clr, x, y, z, crop_color,
                                        applied_minmax_arr[0],
                                        applied_minmax_arr[1])
@@ -74,6 +75,7 @@ def color_crop_ref(tile_info, crop_ref, clr=None):
                 np.savetxt(applied_minmax, applied_minmax_arr)
 
                 if common.image_pix_dim_tiffinfo(crop_ref) == 4:
+                    print "chrisbavard2"
                     print 'the image is pansharpened fusioned'
                     tmp = common.rgbi_to_rgb(crop_ref, out=None, tilewise=True)
                     #common.image_qauto(tmp, crop_color, tilewise=False)
@@ -81,6 +83,7 @@ def color_crop_ref(tile_info, crop_ref, clr=None):
                                                     applied_minmax_arr[0],
                                                     applied_minmax_arr[1])
                 else:
+                    print "chrisbavard3"
                     print 'no color data'
                     #common.image_qauto(crop_ref, crop_color, tilewise=False)
                     common.image_rescaleintensities(crop_ref, crop_color,
@@ -105,6 +108,7 @@ def generate_cloud(tile_info, do_offset=False, utm_zone=None):
     img1, rpc1 = cfg['images'][0]['img'], cfg['images'][0]['rpc']
 
     height_map = os.path.join(tile_dir , 'height_map_crop.tif')
+    ecef_coord = os.path.join(tile_dir , 'ecef_coord_crop.tif')
     crop_color = os.path.join(tile_dir , 'roi_color_ref.tif')
     if not os.path.exists(crop_color):
         crop_color = ''
@@ -135,9 +139,16 @@ def generate_cloud(tile_info, do_offset=False, utm_zone=None):
 
     # output
     cloud = os.path.join(tile_dir , 'cloud.ply')
+    cloudbis = os.path.join(tile_dir , 'cloud-bis.ply')
+
 
     triangulation.compute_point_cloud(cloud, height_map, rpc1, trans, crop_color,
-                                      off_x, off_y, utm_zone=utm_zone)
+                                      off_x, off_y, utm_zone=utm_zone,color=True)
+    
+    triangulation.compute_point_cloud(cloudbis, ecef_coord, rpc1, trans, crop_color,
+                                     off_x, off_y, utm_zone=utm_zone,color=False)
+                                      
+
 
     common.garbage_cleanup()
 
@@ -165,6 +176,8 @@ def finalize_tile(tile_info, utm_zone=None):
     ## remove overlapping areas
     height_map = os.path.join(tile_dir , 'height_map.tif')
     height_map_crop = os.path.join(tile_dir , 'height_map_crop.tif')
+    ecef_coord = os.path.join(tile_dir , 'ecef_coord.tif')
+    ecef_coord_crop = os.path.join(tile_dir , 'ecef_coord_crop.tif')
     rpc_err_all = os.path.join(tile_dir , 'rpc_err_rms_allsights.tif')
     rpc_err_all_crop = os.path.join(tile_dir , 'rpc_err_rms_allsights_crop.tif')
     crop_ref = os.path.join(tile_dir , 'roi_ref.tif')
@@ -194,6 +207,9 @@ def finalize_tile(tile_info, utm_zone=None):
     # already been zoomed. So don't zoom again to crop these images.
     if not (os.path.isfile(height_map_crop) and cfg['skip_existing']):
         common.cropImage(height_map, height_map_crop,
+                         newcol, newrow, w, h)
+    if not (os.path.isfile(height_map_crop) and cfg['skip_existing']):
+        common.cropImage(ecef_coord, ecef_coord_crop,
                          newcol, newrow, w, h)
     if not (os.path.isfile(rpc_err_all_crop) and cfg['skip_existing']):
         common.cropImage(rpc_err_all, rpc_err_all_crop,

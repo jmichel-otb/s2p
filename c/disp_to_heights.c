@@ -149,6 +149,11 @@ int main_disp_to_heights(int c, char *v[])
     sprintf(fout_heights,"%s/height_map.tif",tile_dir);
     float *heightMap = (float *) calloc(width*height, sizeof(float));
     
+    // * ECEF coord
+    char fout_ecef[1000];
+    sprintf(fout_ecef,"%s/ecef_coord.tif",tile_dir);
+    float *ecef = (float *) malloc(3*width*height*sizeof( float ));
+    
     // * rpc errors
     typedef char tabchar[1000];
     int size_of_fout_err_tab;
@@ -329,6 +334,8 @@ int main_disp_to_heights(int c, char *v[])
 
             // some initializations
             heightMap[posH] = NAN;
+            for(int t=0; t<3; t++)
+                    ecef[width*3*y+3*x+t] = NAN;
             for(int i=0; i<size_of_fout_err_tab; i++)
                 errMap_tab[i][posH] = NAN;
 
@@ -422,8 +429,18 @@ int main_disp_to_heights(int c, char *v[])
                     sum = sqrt(sum/nb_elt);
                   
                     // Output the results in original geometry 
+                    
                     // * height
                     heightMap[posH] = hg;
+                    
+                    // * ecef
+                    // - sights_list is a list of "type_sight" element (see c/rpc.h)
+                    // - err_vec_ptopt_to_sight is a field made up of a 6 double tab
+                    // - the three first elements correspond to the optimal point in  ECEF coord
+                    // - each sight is related to the optimal point, so we only need the first one.
+                    for(int t=0; t<3; t++)
+                        ecef[width*3*y+3*x+t] = sights_list[0].err_vec_ptopt_to_sight[t];
+                    
                     // * r.m.s. error (dedicated to index 0)
                     errMap_tab[0][posH] = sum;
                 }
@@ -435,6 +452,7 @@ int main_disp_to_heights(int c, char *v[])
         
     // save the height map / error map / full outputs
     iio_save_image_float(fout_heights, heightMap, width, height);
+    iio_save_image_float_vec(fout_ecef, ecef, width, height, 3);
     for(int i=0;i<size_of_fout_err_tab;i++)
         iio_save_image_float(fout_err_tab[i], errMap_tab[i], width, height);
     if (full_outputs)
@@ -452,6 +470,7 @@ int main_disp_to_heights(int c, char *v[])
 
     // clean mem
     free(heightMap);
+    free(ecef);
 
     for(int i=0;i<size_of_fout_err_tab;i++)
         free(errMap_tab[i]);

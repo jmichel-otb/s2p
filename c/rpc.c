@@ -785,8 +785,7 @@ double rpc_height_geo(list_of_pairs *list_pairs,
 		*final_nb_sights = local_nb_sights;
 	}
 		
-	double h,dist;
-	//double lgt,lat,h2;
+	double lgt,lat,h;
 	if (best_consensus_score>=2)
 	{
 		// final estimation, without the outliers
@@ -801,8 +800,8 @@ double rpc_height_geo(list_of_pairs *list_pairs,
 												  sights_list[i].err_vec_ptopt_to_sight);
 
 		// compute altitude h
-		h = get_altitude_from_ECEF(point_opt[0],point_opt[1],point_opt[2]);
-		//ECEF_to_lgt_lat_alt(point_opt[0],point_opt[1],point_opt[2],&lgt,&lat,&h2);
+		//h = get_altitude_from_ECEF(point_opt[0],point_opt[1],point_opt[2]);
+		ECEF_to_lgt_lat_alt(point_opt[0],point_opt[1],point_opt[2],&lgt,&lat,&h);
 	}
 	else
 	{
