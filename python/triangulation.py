@@ -112,4 +112,4 @@ def compute_point_cloud(cloud, ecef, crop_colorized=''):
     """
     if not (os.path.isfile(cloud) and cfg['skip_existing']):
         command = "buildply %s %s %s" % (cloud, ecef, crop_colorized)
-            common.run(command)
+        common.run(command)

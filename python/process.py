@@ -20,7 +20,7 @@ from python import rectification
 from python import masking
 
 
-def color_crop_ref(tile_info, crop_ref, clr=None):
+def color_crop_ref(tile_info, clr=None):
     """
     Colorizations of a crop_ref (for a given tile)
 
@@ -43,52 +43,30 @@ def color_crop_ref(tile_info, crop_ref, clr=None):
 
     # paths
     crop_ref = os.path.join(tile_dir , 'roi_ref_crop.tif')
+    crop_color = os.path.join(tile_dir , 'roi_color_ref_crop.tif')
     global_minmax = os.path.join(cfg['out_dir'] , 'global_minmax.txt')
-    applied_minmax = os.path.join(tile_dir , 'applied_minmax.txt')
-
+    
     global_minmax_arr = np.loadtxt(global_minmax)
 
     if cfg['color_ply']:
-
-        doProcess = False
-        if not os.path.exists(applied_minmax):
-            doProcess = True
-            applied_minmax_arr = global_minmax_arr
-        else:
-            applied_minmax_arr = np.loadtxt(applied_minmax)
-
-            if (applied_minmax_arr[0] != global_minmax_arr[0]) or (applied_minmax_arr[1] != global_minmax_arr[1]):
-                doProcess = True
-                applied_minmax_arr = global_minmax_arr
-
-        if not doProcess and cfg['skip_existing']:
-            print 'Rescaling of tile %s already done, skip' % tile_dir
-        else:
-
-            crop_color = os.path.join(tile_dir , 'roi_color_ref.tif')
-            if clr is not None:
-                print "chrisbavard1"
-                triangulation.colorize(crop_ref, clr, x, y, z, crop_color,
-                                       applied_minmax_arr[0],
-                                       applied_minmax_arr[1])
-            else:  # use of image_rescaleintensities
-                np.savetxt(applied_minmax, applied_minmax_arr)
-
-                if common.image_pix_dim_tiffinfo(crop_ref) == 4:
-                    print "chrisbavard2"
-                    print 'the image is pansharpened fusioned'
-                    tmp = common.rgbi_to_rgb(crop_ref, out=None, tilewise=True)
-                    #common.image_qauto(tmp, crop_color, tilewise=False)
-                    common.image_rescaleintensities(tmp, crop_color,
-                                                    applied_minmax_arr[0],
-                                                    applied_minmax_arr[1])
-                else:
-                    print "chrisbavard3"
-                    print 'no color data'
-                    #common.image_qauto(crop_ref, crop_color, tilewise=False)
-                    common.image_rescaleintensities(crop_ref, crop_color,
-                                                    applied_minmax_arr[0],
-                                                    applied_minmax_arr[1])
+        if clr is not None:
+            triangulation.colorize(crop_ref, clr, x, y, z, crop_color,
+                                   global_minmax_arr[0],
+                                   global_minmax_arr[1])
+        else:  # use of image_rescaleintensities
+            if common.image_pix_dim_tiffinfo(crop_ref) == 4:
+                print 'the image is pansharpened fusioned'
+                tmp = common.rgbi_to_rgb(crop_ref, out=None, tilewise=True)
+                #common.image_qauto(tmp, crop_color, tilewise=False)
+                common.image_rescaleintensities(tmp, crop_color,
+                                                global_minmax_arr[0],
+                                                global_minmax_arr[1])
+            else:
+                print 'no color data'
+                #common.image_qauto(crop_ref, crop_color, tilewise=False)
+                common.image_rescaleintensities(crop_ref, crop_color,
+                                                global_minmax_arr[0],
+                                                global_minmax_arr[1])
 
 
 def generate_cloud(tile_info, do_offset=False, utm_zone=None):
@@ -108,13 +86,13 @@ def generate_cloud(tile_info, do_offset=False, utm_zone=None):
     img1, rpc1 = cfg['images'][0]['img'], cfg['images'][0]['rpc']
 
     ecef_coord = os.path.join(tile_dir , 'ecef_coord_crop.tif')
-    crop_color = os.path.join(tile_dir , 'roi_color_ref.tif')
+    crop_color = os.path.join(tile_dir , 'roi_color_ref_crop.tif')
     if not os.path.exists(crop_color):
         crop_color = ''
 
     # output
     cloud = os.path.join(tile_dir , 'cloud.ply')
-    triangulation.compute_point_cloud(cloudbis, ecef_coord, crop_color)
+    triangulation.compute_point_cloud(cloud, ecef_coord, crop_color)
                                       
     common.garbage_cleanup()
 
