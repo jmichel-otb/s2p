@@ -107,49 +107,15 @@ def generate_cloud(tile_info, do_offset=False, utm_zone=None):
     x, y, w, h = tile_info['coordinates']
     img1, rpc1 = cfg['images'][0]['img'], cfg['images'][0]['rpc']
 
-    height_map = os.path.join(tile_dir , 'height_map_crop.tif')
     ecef_coord = os.path.join(tile_dir , 'ecef_coord_crop.tif')
     crop_color = os.path.join(tile_dir , 'roi_color_ref.tif')
     if not os.path.exists(crop_color):
         crop_color = ''
 
-    z = cfg['subsampling_factor']
-
-    # Compute the homography transforming the coordinates system of the
-    # original full size image into the coordinates system
-    # of the crop we are dealing with
-    # col and row have been divided by z inside 'finalize_tile' for
-    # convinience; col*z and row*z allow to get the initial values back.
-    A = common.matrix_translation(-x * z, -y * z)
-    f = 1.0 / z
-    Z = np.diag([f, f, 1])
-    A = np.dot(Z, A)
-    trans = os.path.join(tile_dir , 'trans.txt')
-    np.savetxt(trans, A, fmt='%9.3f')
-
-    # compute coordinates (offsets) of the point we want to use as origin in
-    # the local coordinate system of the computed cloud
-    if do_offset:
-        r = rpc_model.RPCModel(rpc1)
-        lat = r.latOff
-        lon = r.lonOff
-        off_x, off_y = geographiclib.geodetic_to_utm(lat, lon)[0:2]
-    else:
-        off_x, off_y = 0, 0
-
     # output
     cloud = os.path.join(tile_dir , 'cloud.ply')
-    cloudbis = os.path.join(tile_dir , 'cloud-bis.ply')
-
-
-    triangulation.compute_point_cloud(cloud, height_map, rpc1, trans, crop_color,
-                                      off_x, off_y, utm_zone=utm_zone,color=True)
-    
-    triangulation.compute_point_cloud(cloudbis, ecef_coord, rpc1, trans, crop_color,
-                                     off_x, off_y, utm_zone=utm_zone,color=False)
+    triangulation.compute_point_cloud(cloudbis, ecef_coord, crop_color)
                                       
-
-
     common.garbage_cleanup()
 
 
