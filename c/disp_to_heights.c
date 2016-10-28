@@ -7,6 +7,8 @@
 #include "vvector.h"
 #include "iio.h"
 #include "rpc.h"
+#include "triangulation.h"
+#include "coordconvert.h"
 #include "read_matrix.c"
 
 void applyHom(double outv[3], double M[3][3], double v[3]) {

@@ -133,6 +133,12 @@ plambda_without_fopenmp:
 $(SRCDIR)/iio.o: $(SRCDIR)/iio.c $(SRCDIR)/iio.h
 	$(C99) $(CFLAGS) -c -DIIO_ABORT_ON_ERROR -Wno-deprecated-declarations $< -o $@
 
+$(SRCDIR)/triangulation.o: c/triangulation.c c/triangulation.h
+	$(C99) $(CFLAGS) -c $< -lm -o $@
+
+$(SRCDIR)/coordconvert.o: c/coordconvert.c c/coordconvert.h
+	$(C99) $(CFLAGS) -c $< -lm -o $@
+
 $(SRCDIR)/rpc.o: c/rpc.c c/xfopen.c
 	$(C99) $(CFLAGS) -c $< -o $@
 
@@ -155,14 +161,14 @@ $(BINDIR)/srtm4: c/srtm4.c $(SRCDIR)/Geoid.o $(SRCDIR)/geoid_height_wrapper.o
 $(BINDIR)/srtm4_which_tile: c/srtm4.c $(SRCDIR)/Geoid.o $(SRCDIR)/geoid_height_wrapper.o
 	$(C99) $(CFLAGS) -DMAIN_SRTM4_WHICH_TILE $^ $(IIOLIBS) $(LDLIBS) -o $@
 
-$(BINDIR)/watermask: $(SRCDIR)/iio.o $(SRCDIR)/Geoid.o\
+$(BINDIR)/watermask: $(SRCDIR)/iio.o $(SRCDIR)/coordconvert.o $(SRCDIR)/Geoid.o\
 	$(SRCDIR)/geoid_height_wrapper.o $(SRCDIR)/watermask.c $(SRCDIR)/fail.c\
 	$(SRCDIR)/xmalloc.c $(SRCDIR)/pickopt.c $(SRCDIR)/rpc.c $(SRCDIR)/srtm4.c\
 	$(SRCDIR)/iio.h $(SRCDIR)/parsenumbers.c
-	$(C99) $(CFLAGS) $(SRCDIR)/iio.o $(SRCDIR)/Geoid.o $(SRCDIR)/geoid_height_wrapper.o $(SRCDIR)/watermask.c $(IIOLIBS) $(LDLIBS) -o $@
+	$(C99) $(CFLAGS) $(SRCDIR)/iio.o $(SRCDIR)/coordconvert.o $(SRCDIR)/Geoid.o $(SRCDIR)/geoid_height_wrapper.o $(SRCDIR)/watermask.c $(IIOLIBS) $(LDLIBS) -o $@
 	
-$(BINDIR)/disp_to_heights: $(SRCDIR)/iio.o $(SRCDIR)/rpc.o c/disp_to_heights.c c/vvector.h c/iio.h c/rpc.h c/read_matrix.c
-	$(C99) $(CFLAGS) $(SRCDIR)/iio.o $(SRCDIR)/rpc.o c/disp_to_heights.c $(IIOLIBS) -o $@
+$(BINDIR)/disp_to_heights: $(SRCDIR)/iio.o $(SRCDIR)/rpc.o $(SRCDIR)/triangulation.o $(SRCDIR)/coordconvert.o c/disp_to_heights.c c/vvector.h c/iio.h c/rpc.h c/triangulation.h c/coordconvert.h c/read_matrix.c
+	$(C99) $(CFLAGS) $(SRCDIR)/iio.o $(SRCDIR)/rpc.o $(SRCDIR)/triangulation.o $(SRCDIR)/coordconvert.o c/disp_to_heights.c $(IIOLIBS) -o $@
 	
 $(BINDIR)/nan_generator: $(SRCDIR)/iio.o c/nan_generator.c c/iio.h  
 	$(C99) $(CFLAGS) $(SRCDIR)/iio.o c/nan_generator.c $(IIOLIBS) -o $@
@@ -172,9 +178,9 @@ $(BINDIR)/colormesh: $(SRCDIR)/iio.o $(SRCDIR)/rpc.o $(SRCDIR)/geographiclib_wra
 	c/fail.c c/rpc.h c/read_matrix.c c/smapa.h c/timing.c c/timing.h
 	$(C99) $(CFLAGS) $(SRCDIR)/iio.o $(SRCDIR)/rpc.o $(SRCDIR)/geographiclib_wrapper.o $(SRCDIR)/DMS.o $(SRCDIR)/GeoCoords.o $(SRCDIR)/MGRS.o $(SRCDIR)/PolarStereographic.o $(SRCDIR)/TransverseMercator.o $(SRCDIR)/UTMUPS.o c/colormesh.c c/timing.c $(IIOLIBS) $(LDLIBS) -o $@
 
-$(BINDIR)/buildply: $(SRCDIR)/iio.o $(SRCDIR)/rpc.o $(SRCDIR)/geographiclib_wrapper.o $(SRCDIR)/DMS.o $(SRCDIR)/GeoCoords.o $(SRCDIR)/MGRS.o\
+$(BINDIR)/buildply: $(SRCDIR)/iio.o $(SRCDIR)/rpc.o $(SRCDIR)/coordconvert.o $(SRCDIR)/geographiclib_wrapper.o $(SRCDIR)/DMS.o $(SRCDIR)/GeoCoords.o $(SRCDIR)/MGRS.o\
 	$(SRCDIR)/PolarStereographic.o $(SRCDIR)/TransverseMercator.o $(SRCDIR)/UTMUPS.o c/buildply.c c/iio.h c/rpc.h
-	$(C99) $(CFLAGS) $(SRCDIR)/iio.o $(SRCDIR)/rpc.o $(SRCDIR)/geographiclib_wrapper.o $(SRCDIR)/DMS.o $(SRCDIR)/GeoCoords.o $(SRCDIR)/MGRS.o $(SRCDIR)/PolarStereographic.o $(SRCDIR)/TransverseMercator.o $(SRCDIR)/UTMUPS.o c/buildply.c $(IIOLIBS) $(LDLIBS) -o $@
+	$(C99) $(CFLAGS) $(SRCDIR)/iio.o $(SRCDIR)/rpc.o $(SRCDIR)/coordconvert.o $(SRCDIR)/geographiclib_wrapper.o $(SRCDIR)/DMS.o $(SRCDIR)/GeoCoords.o $(SRCDIR)/MGRS.o $(SRCDIR)/PolarStereographic.o $(SRCDIR)/TransverseMercator.o $(SRCDIR)/UTMUPS.o c/buildply.c $(IIOLIBS) $(LDLIBS) -o $@
 
 $(BINDIR)/plyflatten: $(SRCDIR)/plyflatten.c $(SRCDIR)/iio.o
 	$(C99) $(CFLAGS) $^ -o $@ $(IIOLIBS) $(GEOLIBS)

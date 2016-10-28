@@ -1,7 +1,7 @@
 #include <inttypes.h>
 #include <stdio.h>
 #include "iio.h"
-#include "rpc.h"
+#include "coordconvert.h"
 
 void utm_alt_zone(double *out, double lat, double lon, int zone);
 void utm_zone(int *zone, bool *northp, double lat, double lon);
