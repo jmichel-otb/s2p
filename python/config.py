@@ -147,3 +147,7 @@ cfg['vrt_to_tiff'] = False
 # global_extent = [xmin, xmax, ymin, ymax]
 cfg['global_extent']= None
 
+# If true, s2p outputs additional ply
+# files whose points are in ECEF coord.
+cfg['ecef_ply']= False
+

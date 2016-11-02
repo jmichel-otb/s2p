@@ -92,7 +92,9 @@ def generate_cloud(tile_info, do_offset=False, utm_zone=None):
 
     # output
     cloud = os.path.join(tile_dir , 'cloud.ply')
-    triangulation.compute_point_cloud(cloud, ecef_coord, crop_color)
+    
+    if not (os.path.isfile(cloud) and cfg['skip_existing']):
+        triangulation.compute_point_cloud(tile_dir)
                                       
     common.garbage_cleanup()
 

@@ -99,17 +99,12 @@ def colorize(crop_panchro, im_color, x, y, zoom, out_colorized, rmin,rmax):
     return
 
 
-def compute_point_cloud(cloud, ecef, crop_colorized=''):
+def compute_point_cloud(tile_dir):
     """
     Computes a color point cloud from a height map.
 
     Args:
-        cloud: path to the output points cloud (ply format)
-        ecef: ecef map, sampled on the same grid as the crop_colorized
-            image. In particular, its size is the same as crop_colorized.
-        crop_colorized (optional, default ''): path to a colorized crop of a
-            Pleiades image
+        tile_dir : tile directory
     """
-    if not (os.path.isfile(cloud) and cfg['skip_existing']):
-        command = "buildply %s %s %s" % (cloud, ecef, crop_colorized)
-        common.run(command)
+    command = "buildply %s %d" % (tile_dir,int(cfg['ecef_ply']) )
+    common.run(command)

@@ -36,19 +36,22 @@ void write_ply_header(FILE* f, uint64_t npoints, char * comments, bool colors)
 
 void help(char *s)
 {
-    fprintf(stderr, "\t usage: %s root_out_dir /*out.ply ecef_coord_crop.tif [roi_color_ref_crop.tif]*/", s);
+    fprintf(stderr, "\t usage: %s root_out_dir output_ecef", s);
 }
 
 int main(int c, char *v[])
 {
 
-    if ( c!= 2 ) {
+    if ( c!= 3 ) {
         help(*v);
         return 1;
     }
     
     // parse arguments
     char *root_out_dir=v[1];
+    bool output_ecef=atoi(v[2]);
+    
+    // file names
     char fname_ply[1000];
     sprintf(fname_ply,"%s/cloud.ply",root_out_dir);
     char fname_ecef_ply[1000];
@@ -126,10 +129,14 @@ int main(int c, char *v[])
     sprintf(comments_UTM,"comment projection: UTM %i%s\n", zone, (hem ? "N" : "S"));
     write_ply_header(ply_file, npoints, comments_UTM, there_is_color);
     
-    FILE *ecef_ply_file = fopen(fname_ecef_ply, "wb");
-    char comments_ECEF[1000];
-    sprintf(comments_ECEF,"comment projection: ECEF\n");
-    write_ply_header(ecef_ply_file, npoints, comments_ECEF, there_is_color);
+    FILE *ecef_ply_file;
+    if (output_ecef)
+    {
+        ecef_ply_file = fopen(fname_ecef_ply, "wb");
+        char comments_ECEF[1000];
+        sprintf(comments_ECEF,"comment projection: ECEF\n");
+        write_ply_header(ecef_ply_file, npoints, comments_ECEF, there_is_color);
+    }
 
     // fill ply file
     size_t point_size = 3*sizeof(double);
@@ -141,7 +148,9 @@ int main(int c, char *v[])
     }
     
     char *buf = (char *) malloc(point_size);
-    char *buf_ecef = (char *) malloc(point_size);
+    char *buf_ecef;
+    if (output_ecef)
+        buf_ecef = (char *) malloc(point_size);
     double *utm_coord = (double *) malloc(dim*sizeof(double));
     
     for (int y = 0; y < h; y++)
@@ -183,30 +192,38 @@ int main(int c, char *v[])
             fwrite( buf, point_size, 1, ply_file);
             
             // write to memory ECEF coord
-            ptr_double = (double *) buf_ecef;
-            ptr_double[0] = ecef[w*3*y+3*x];
-            ptr_double[1] = ecef[w*3*y+3*x+1];
-            ptr_double[2] = ecef[w*3*y+3*x+2];
-            
-            if (there_is_color)
+            if (output_ecef)
             {
-                char *ptr_char = buf_ecef + 3*sizeof(double);
-                ptr_char[0] = utm_coord[3];
-                ptr_char[1] = utm_coord[4];
-                ptr_char[2] = utm_coord[5];
+                double *ptr_double = (double *) buf_ecef;
+                ptr_double[0] = ecef[w*3*y+3*x];
+                ptr_double[1] = ecef[w*3*y+3*x+1];
+                ptr_double[2] = ecef[w*3*y+3*x+2];
+                
+                if (there_is_color)
+                {
+                    char *ptr_char = buf_ecef + 3*sizeof(double);
+                    ptr_char[0] = utm_coord[3];
+                    ptr_char[1] = utm_coord[4];
+                    ptr_char[2] = utm_coord[5];
+                }
+                fwrite( buf_ecef, point_size, 1, ecef_ply_file);
             }
-            fwrite( buf_ecef, point_size, 1, ecef_ply_file);
         }
     }
 
+    // Clean memory
     free(buf);
-    free(buf_ecef);
-    if (there_is_color)
-        free(clr);
     free(utm_coord);
     free(ecef);
     fclose(ply_file);
-    fclose(ecef_ply_file);
+    
+    if (there_is_color)
+        free(clr);
+    if (output_ecef)
+    {
+        free(buf_ecef);
+        fclose(ecef_ply_file);
+    }
     
     return 0;
 }
