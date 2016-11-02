@@ -19,8 +19,6 @@ void write_ply_header(FILE* f, uint64_t npoints, char * comments, bool colors)
     fprintf(f, "format binary_little_endian 1.0\n");
     fprintf(f, "comment created by S2P\n");
     fprintf(f, "%s",comments);
-    /*if (zone >= 0)
-        fprintf(f, "comment projection: UTM %i%s\n", zone, (hem ? "N" : "S"));*/
     fprintf(f, "element vertex %" PRIu64 "\n", npoints);
     fprintf(f, "property double x\n");
     fprintf(f, "property double y\n");
@@ -36,7 +34,7 @@ void write_ply_header(FILE* f, uint64_t npoints, char * comments, bool colors)
 
 void help(char *s)
 {
-    fprintf(stderr, "\t usage: %s root_out_dir output_ecef", s);
+    fprintf(stderr, "\t usage: %s root_out_dir output_ecef_bool", s);
 }
 
 int main(int c, char *v[])
@@ -81,12 +79,12 @@ int main(int c, char *v[])
          
     if ( there_is_color && ( (w != wc) || (h != hc) ) )
     { 
-        printf("color and ecef image size mismatch\n");
+        fprintf(stderr, "Color and ecef image sizes mismatch\n");
         return 1;
     }
     if (pd != 3) 
     {
-        printf("ecef image must have 3 bands\n");
+        fprintf(stderr, "ECEF coord image must have 3 bands\n");
         return 1;
     }
         
@@ -125,33 +123,45 @@ int main(int c, char *v[])
 
     // print header for ply file
     FILE *ply_file = fopen(fname_ply, "wb");
-    char comments_UTM[1000];
-    sprintf(comments_UTM,"comment projection: UTM %i%s\n", zone, (hem ? "N" : "S"));
-    write_ply_header(ply_file, npoints, comments_UTM, there_is_color);
+    if (ply_file)
+    {
+        char comments_UTM[1000];
+        sprintf(comments_UTM,"comment projection: UTM %i%s\n", zone, (hem ? "N" : "S"));
+        write_ply_header(ply_file, npoints, comments_UTM, there_is_color);
+    }
+    else
+    {
+        fprintf(stderr, "Can't open this file: %s\n", fname_ply);
+        return 1;
+    }
     
     FILE *ecef_ply_file;
     if (output_ecef)
     {
         ecef_ply_file = fopen(fname_ecef_ply, "wb");
-        char comments_ECEF[1000];
-        sprintf(comments_ECEF,"comment projection: ECEF\n");
-        write_ply_header(ecef_ply_file, npoints, comments_ECEF, there_is_color);
+        if (ecef_ply_file)
+        {
+            char comments_ECEF[1000];
+            sprintf(comments_ECEF,"comment projection: ECEF\n");
+            write_ply_header(ecef_ply_file, npoints, comments_ECEF, there_is_color);
+        }
+        else
+        {
+            fprintf(stderr, "Can't open this file: %s\n", fname_ecef_ply);
+            return 1;
+        }
     }
 
     // fill ply file
     size_t point_size = 3*sizeof(double);
-    int dim = 3;
     if (there_is_color)
-    {
         point_size += 3*sizeof(uint8_t);
-        dim+=3;
-    }
-    
+   
     char *buf = (char *) malloc(point_size);
     char *buf_ecef;
     if (output_ecef)
         buf_ecef = (char *) malloc(point_size);
-    double *utm_coord = (double *) malloc(dim*sizeof(double));
+    double utm_coord[3];
     
     for (int y = 0; y < h; y++)
     for (int x = 0; x < w; x++) 
@@ -171,11 +181,6 @@ int main(int c, char *v[])
                                 &lgt,&lat,&alt);
             get_utm_coord(utm_coord, lat, lgt, alt, zone);
             
-            // colors
-            if (there_is_color)
-                for(int t=0; t<3; t++)
-                    utm_coord[t+3] = clr[w*3*y+3*x+t];
-            
             // write to memory UTM coord
             double *ptr_double = (double *) buf;
             ptr_double[0] = utm_coord[0];
@@ -185,9 +190,9 @@ int main(int c, char *v[])
             if (there_is_color)
             {
                 char *ptr_char = buf + 3*sizeof(double);
-                ptr_char[0] = utm_coord[3];
-                ptr_char[1] = utm_coord[4];
-                ptr_char[2] = utm_coord[5];
+                ptr_char[0] = clr[w*3*y+3*x];
+                ptr_char[1] = clr[w*3*y+3*x+1];
+                ptr_char[2] = clr[w*3*y+3*x+2];
             }
             fwrite( buf, point_size, 1, ply_file);
             
@@ -202,9 +207,9 @@ int main(int c, char *v[])
                 if (there_is_color)
                 {
                     char *ptr_char = buf_ecef + 3*sizeof(double);
-                    ptr_char[0] = utm_coord[3];
-                    ptr_char[1] = utm_coord[4];
-                    ptr_char[2] = utm_coord[5];
+                    ptr_char[0] = clr[w*3*y+3*x];
+                    ptr_char[1] = clr[w*3*y+3*x+1];
+                    ptr_char[2] = clr[w*3*y+3*x+2];
                 }
                 fwrite( buf_ecef, point_size, 1, ecef_ply_file);
             }
@@ -213,7 +218,6 @@ int main(int c, char *v[])
 
     // Clean memory
     free(buf);
-    free(utm_coord);
     free(ecef);
     fclose(ply_file);
     
