@@ -269,6 +269,8 @@ def process_tile(tile_info):
         common.remove_if_exists(os.path.join(tile_dir,'applied_minmax.txt'))
         common.remove_if_exists(os.path.join(tile_dir,'roi_ref_crop.tif'))
         common.remove_if_exists(os.path.join(tile_dir,'rpc_err_rms_allsights.tif'))
+        common.remove_if_exists(os.path.join(tile_dir,'ecef_coord_crop.tif'))
+        common.remove_if_exists(os.path.join(tile_dir,'ecef_coord.tif'))
         
         if cfg['full_vrt']:
             for i in xrange(1,len(cfg['images'])+1):
