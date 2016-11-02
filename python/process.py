@@ -82,13 +82,6 @@ def generate_cloud(tile_info, do_offset=False, utm_zone=None):
 
     # get info
     tile_dir = tile_info['directory']
-    x, y, w, h = tile_info['coordinates']
-    img1, rpc1 = cfg['images'][0]['img'], cfg['images'][0]['rpc']
-
-    ecef_coord = os.path.join(tile_dir , 'ecef_coord_crop.tif')
-    crop_color = os.path.join(tile_dir , 'roi_color_ref_crop.tif')
-    if not os.path.exists(crop_color):
-        crop_color = ''
 
     # output
     cloud = os.path.join(tile_dir , 'cloud.ply')
