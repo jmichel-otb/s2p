@@ -66,7 +66,7 @@ int main(int c, char *v[])
     if (there_is_color)
          clr = iio_read_image_double_vec(fname_colors, &wc, &hc, &pdc);
          
-    if ( (w != wc) || (h != hc) ) 
+    if ( there_is_color && ( (w != wc) || (h != hc) ) )
     { 
         printf("color and ecef image size mismatch\n");
         return 1;
