@@ -17,8 +17,7 @@ void write_ply_header(FILE* f, uint64_t npoints, int zone,
         bool hem, bool colors)
 {
     fprintf(f, "ply\n");
-    //fprintf(f, "format binary_little_endian 1.0\n");
-    fprintf(f, "format ascii 1.0\n");
+    fprintf(f, "format binary_little_endian 1.0\n");
     fprintf(f, "comment created by S2P\n");
     if (zone >= 0)
         fprintf(f, "comment projection: UTM %i%s\n", zone, (hem ? "N" : "S"));
@@ -117,11 +116,17 @@ int main(int c, char *v[])
                     there_is_color);
 
     // fill ply file
-    size_t point_size = 3;
+    size_t point_size = 3*sizeof(double);
+    int dim = 3;
     if (there_is_color)
-        point_size += 3;
-        
-    double *utm_coord = (double *) malloc(point_size*sizeof(double));
+    {
+        point_size += 3*sizeof(uint8_t);
+        dim+=3;
+    }
+    
+    char *buf = (char *) malloc(point_size);
+    double *utm_coord = (double *) malloc(dim*sizeof(double));
+    
     for (int y = 0; y < h; y++)
     for (int x = 0; x < w; x++) 
     {
@@ -144,16 +149,26 @@ int main(int c, char *v[])
             if (there_is_color)
                 for(int t=0; t<3; t++)
                     utm_coord[t+3] = clr[w*3*y+3*x+t];
-            //fwrite( utm_coord, sizeof(double), point_size, ply_file);
             
-            if ( !(there_is_color) )
-                fprintf(ply_file,"%f %f %f\n",utm_coord[0],utm_coord[1],utm_coord[2]);
-            else
-                fprintf(ply_file,"%f %f %f %d %d %d\n",utm_coord[0],utm_coord[1],utm_coord[2],
-                      (uint8_t) utm_coord[3], (uint8_t) utm_coord[4], (uint8_t) utm_coord[5]);
+            // write to memory
+            double *ptr_double = (double *) buf;
+            ptr_double[0] = utm_coord[0];
+            ptr_double[1] = utm_coord[1];
+            ptr_double[2] = utm_coord[2];
+            
+            if (there_is_color)
+            {
+                char *ptr_char = buf + 3*sizeof(double);
+                ptr_char[0] = utm_coord[3];
+                ptr_char[1] = utm_coord[4];
+                ptr_char[2] = utm_coord[5];
+            }
+            
+            fwrite( buf, point_size, 1, ply_file);
         }
     }
 
+    free(buf);
     if (there_is_color)
         free(clr);
     free(utm_coord);
