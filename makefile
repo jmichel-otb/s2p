@@ -3,6 +3,7 @@ CFLAGS = -g -O3 -DNDEBUG -DDONT_USE_TEST_MAIN
 CPPFLAGS = -g -O3
 LDLIBS = -lstdc++
 IIOLIBS = $(TIFDIR)/lib/libtiff.a -lz -lpng -ljpeg -lm
+GDALLIB = -lgdal
 GEOLIBS = -lgeotiff -ltiff
 FFTLIBS = -lfftw3f -lfftw3
 
@@ -189,7 +190,7 @@ $(BINDIR)/plyextrema: $(SRCDIR)/plyextrema.c $(SRCDIR)/iio.o
 	$(C99) $(CFLAGS) $^ -o $@ $(IIOLIBS) $(GEOLIBS)
 
 $(BINDIR)/plytodsm: $(SRCDIR)/plytodsm.c $(SRCDIR)/iio.o
-	$(C99) $(CFLAGS) $^ -o $@ $(IIOLIBS) $(GEOLIBS)
+	$(C99) $(CFLAGS) $^ -o $@ $(IIOLIBS) $(GEOLIBS) $(GDALLIB)
 
 
 # GEOGRAPHICLIB STUFF
