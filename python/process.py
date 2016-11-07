@@ -147,7 +147,7 @@ def finalize_tile(tile_info, utm_zone=None):
     if not (os.path.isfile(height_map_crop) and cfg['skip_existing']):
         common.cropImage(height_map, height_map_crop,
                          newcol, newrow, w, h)
-    if not (os.path.isfile(height_map_crop) and cfg['skip_existing']):
+    if not (os.path.isfile(ecef_coord_crop) and cfg['skip_existing']):
         common.cropImage(ecef_coord, ecef_coord_crop,
                          newcol, newrow, w, h)
     if not (os.path.isfile(rpc_err_all_crop) and cfg['skip_existing']):
