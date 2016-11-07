@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include "iio.h"
 #include "coordconvert.h"
+#include "pickopt.c"
 
 void utm_alt_zone(double *out, double lat, double lon, int zone);
 void utm_zone(int *zone, bool *northp, double lat, double lon);
@@ -31,16 +32,37 @@ void write_ply_header(FILE* f, uint64_t npoints, char * comments, bool colors)
     fprintf(f, "end_header\n");
 }
 
+static void parse_utm_string(int *zone, bool *hem, char *s)
+{
+    if (s == "no_utm_zone") {
+        *zone = -1;
+        return;
+    }
+    char hem_string[FILENAME_MAX];
+    if (2 == sscanf(s, "%02d%s", zone, hem_string)) {
+        // hem_string must be equal to "N" or "S"
+        if (hem_string[1] == '\0') {
+            if (hem_string[0] == 'N' || hem_string[0] == 'S') {
+                *hem = (hem_string[0] == 'N');
+                return;
+            }
+        }
+    }
+    fprintf(stderr, "zone: %d\themisphere: %s\n", *zone, hem_string);
+    fprintf(stderr, "incorrect value for --utm-zone."
+            " It must look like '27N'\n");
+    *zone = -1;
+}
 
 void help(char *s)
 {
-    fprintf(stderr, "\t usage: %s root_out_dir output_ecef_bool", s);
+    fprintf(stderr, "\t usage: %s root_out_dir output_ecef_bool [--utm-zone ZONE]", s);
 }
 
 int main(int c, char *v[])
 {
 
-    if ( c!= 3 ) {
+    if ( c<3 ) {
         help(*v);
         return 1;
     }
@@ -48,6 +70,12 @@ int main(int c, char *v[])
     // parse arguments
     char *root_out_dir=v[1];
     bool output_ecef=atoi(v[2]);
+    // utm zone and hemisphere: true for 'N' and false for 'S'
+    int zone;
+    bool hem;
+    char *utm_string = pick_option(&c, &v, "-utm-zone", "no_utm_zone");
+    parse_utm_string(&zone, &hem, utm_string);
+
     
     // file names
     char fname_ply[1000];
@@ -90,8 +118,6 @@ int main(int c, char *v[])
         
 
     // count number of valid pixels
-    int zone=-1;
-    bool hem;
     uint64_t npoints = 0;
     printf("counting valid points...\n");
     for (int y = 0; y < h; y++)

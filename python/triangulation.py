@@ -106,5 +106,7 @@ def compute_point_cloud(tile_dir):
     Args:
         tile_dir : tile directory
     """
-    command = "buildply %s %d" % (tile_dir,int(cfg['ecef_ply']) )
+    utm_zone = cfg['utm_zone']
+    utm = "--utm-zone %s" % utm_zone if utm_zone else ""
+    command = "buildply %s %d %s" % (tile_dir,int(cfg['ecef_ply']),utm)
     common.run(command)
