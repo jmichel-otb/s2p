@@ -226,7 +226,7 @@ def process_tile(tile_info):
             print '\ttriangulation on tile %d %d already done, skip' % (col, row)
         else:
             print '\ttriangulating tile %d %d...' % (col, row)
-            process.triangulate(tile_info, None)
+        process.triangulate(tile_info, None)
 
         # finalization
         process.finalize_tile(tile_info, cfg['utm_zone'])

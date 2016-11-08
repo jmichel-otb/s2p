@@ -448,7 +448,7 @@ int main_disp_to_heights(int c, char *v[])
                           double dist =  pow(x - mid_width,2.0);
                           dist += pow(y - mid_height,2.0);
                           dist = sqrt(dist);
-                          if (dist<dist_min)
+                          if ( (dist<dist_min) && (!isnan(lgt1)) && (!isnan(lat1)) )
                           {
                               dist_min=dist;
                               best_x = x;
@@ -549,8 +549,7 @@ int main_disp_to_heights(int c, char *v[])
     }
     free(list_pairs.data);
     
-    //printf("bavard %f %d %d %d %d\n",dist_min,mid_width,mid_height,best_x,best_y);
-    //printf("bavard2 %f %f %f %f %f\n",best_mid_width,best_mid_height, best_lgt,best_lat,best_alt);
+    // rpc refining
     FILE * ftie_points = NULL;
     if ( (full_outputs) && (refine_rpc) )
     {
@@ -562,7 +561,6 @@ int main_disp_to_heights(int c, char *v[])
             fclose(ftie_points);
         }
     }
-
     
     return 0;
 }
