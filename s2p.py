@@ -307,6 +307,31 @@ def global_extent(tiles_full_info):
         np.savetxt(global_extent_path, global_extent, fmt='%6.3f')
 
 
+def global_tie_points(tiles_full_info):
+    """
+    Grab the tie points from each tile and concatenate them into 
+    a single file
+    """
+    
+    global_tiepoints_path = os.path.join(cfg['out_dir'], 'global_tie_points.txt')
+    
+    list_tie_points = ''
+    if not (os.path.isfile(global_tiepoints_path) and cfg['skip_existing']):
+        for tile in tiles_full_info:
+            
+            tile_dir = tile['directory']
+            local_tie_points = os.path.join(tile_dir,'tie_points.txt')
+            
+            if os.path.isfile(local_tie_points):
+                fic = open(local_tie_points,'r')
+                list_tie_points += fic.read()
+                fic.close()
+        
+        fic = open(global_tiepoints_path,'w')
+        fic.write( list_tie_points )
+        fic.close()        
+
+
 def compute_dsm(args):
     """
     Compute the DSMs
@@ -497,6 +522,7 @@ def execute_job(config_file,params):
         if step == 5:#"global extent" :
             print 'global extent ...'
             global_extent(tiles_full_info)
+            global_tie_points(tiles_full_info)
 
         if step == 6:#"compute_dsm" :
             print 'compute_dsm ...'
@@ -606,6 +632,7 @@ def main(config_file, step=None, clusterMode=None, misc=None):
         if 5 in steps:
             print '\ncomputing global extent...'
             global_extent(tiles_full_info)
+            global_tie_points(tiles_full_info)
             print_elapsed_time()
 
         if 6 in steps:
