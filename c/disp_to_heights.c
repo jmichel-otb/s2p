@@ -557,7 +557,7 @@ int main_disp_to_heights(int c, char *v[])
         ftie_points = fopen(fname_tie_points,"w");
         if (ftie_points)
         {
-            fprintf(ftie_points, "%.2f %.2f %.10f %.10f %.10f\n",
+            fprintf(ftie_points, "%.2f %.2f %.6f %.6f %.3f\n",
                 best_mid_width,best_mid_height,best_lgt,best_lat,best_alt);
             fclose(ftie_points);
         }
