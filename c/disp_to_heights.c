@@ -448,7 +448,7 @@ int main_disp_to_heights(int c, char *v[])
                           double dist =  pow(x - mid_width,2.0);
                           dist += pow(y - mid_height,2.0);
                           dist = sqrt(dist);
-                          if ( (dist<dist_min) && (!isnan(lgt1)) && (!isnan(lat1)) )
+                          if ( (dist<dist_min) && (!isnan(lgt1)) && (!isnan(lat1)) && (!isnan(alt1)) )
                           {
                               dist_min=dist;
                               best_x = x;
@@ -557,7 +557,8 @@ int main_disp_to_heights(int c, char *v[])
         ftie_points = fopen(fname_tie_points,"w");
         if (ftie_points)
         {
-            fprintf(ftie_points, "%f %f %f %f %f\n",best_mid_width,best_mid_height,best_lgt,best_lat,best_alt);
+            fprintf(ftie_points, "%.2f %.2f %.10f %.10f %.10f\n",
+                best_mid_width,best_mid_height,best_lgt,best_lat,best_alt);
             fclose(ftie_points);
         }
     }
