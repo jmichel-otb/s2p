@@ -240,6 +240,18 @@ int main_disp_to_heights(int c, char *v[])
             img_selected_views[i] = (int *) calloc(width*height,sizeof( int ));
     }
     
+    // Yet another interesting thing :
+    // output coord of the center of the
+    // tile to eventually refine rpc coefs
+    int mid_height = height / 2;
+    int mid_width = width / 2;
+    double dist_min=1e9;
+    int best_x,best_y;
+    double best_mid_height, best_mid_width;
+    double best_lgt,best_lat,best_alt;
+    char fname_tie_points[1000];
+    bool refine_rpc=false;
+    
     
     // ################################
     // time to build the height map 
@@ -333,6 +345,11 @@ int main_disp_to_heights(int c, char *v[])
                 else
                     local_nb_sights--;
             }
+            
+            /*for(int pid=0;pid<list_pairs.real_size;pid++)
+            {
+                printf("bavard %d %f %f\n",pid,list_pairs.data[pid].q0[0],list_pairs.data[pid].q0[1]);
+            }*/
 
             // some initializations
             heightMap[posH] = NAN;
@@ -405,7 +422,8 @@ int main_disp_to_heights(int c, char *v[])
                           ECEF_to_lgt_lat_alt(sights_list[s].err_vec_ptopt_to_sight[0], 
                                             sights_list[s].err_vec_ptopt_to_sight[1], 
                                             sights_list[s].err_vec_ptopt_to_sight[2],
-                                            &lgt1,&lat1,&alt1);                                     
+                                            &lgt1,&lat1,&alt1); 
+                          
                           ECEF_to_lgt_lat_alt(sights_list[s].err_vec_ptopt_to_sight[3], 
                                             sights_list[s].err_vec_ptopt_to_sight[4], 
                                             sights_list[s].err_vec_ptopt_to_sight[5],
@@ -424,6 +442,25 @@ int main_disp_to_heights(int c, char *v[])
                           // (sights numbered from 1 to N so index = ID-1)
                           if (sights_list[s].consensus)
                             img_selected_views[sights_list[s].ID-1][posH]=1;
+                            
+                          // Remember coord of the center of the tile
+                          // to eventually refine rpc
+                          double dist =  pow(x - mid_width,2.0);
+                          dist += pow(y - mid_height,2.0);
+                          dist = sqrt(dist);
+                          if (dist<dist_min)
+                          {
+                              dist_min=dist;
+                              best_x = x;
+                              best_y = y;
+                              best_mid_height = list_pairs.data[0].q0[1];
+                              best_mid_width = list_pairs.data[0].q0[0];
+                              best_lgt = lgt1;
+                              best_lat = lat1;
+                              best_alt = alt1;
+                              refine_rpc=true;
+                          }
+                          
                         }
                     }
                     
@@ -511,6 +548,21 @@ int main_disp_to_heights(int c, char *v[])
             free(list_pairs.data[i].dispy);
     }
     free(list_pairs.data);
+    
+    //printf("bavard %f %d %d %d %d\n",dist_min,mid_width,mid_height,best_x,best_y);
+    //printf("bavard2 %f %f %f %f %f\n",best_mid_width,best_mid_height, best_lgt,best_lat,best_alt);
+    FILE * ftie_points = NULL;
+    if ( (full_outputs) && (refine_rpc) )
+    {
+        sprintf(fname_tie_points,"%s/tie_points.txt",tile_dir);
+        ftie_points = fopen(fname_tie_points,"w");
+        if (ftie_points)
+        {
+            fprintf(ftie_points, "%f %f %f %f %f\n",best_mid_width,best_mid_height,best_lgt,best_lat,best_alt);
+            fclose(ftie_points);
+        }
+    }
+
     
     return 0;
 }
