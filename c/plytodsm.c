@@ -556,7 +556,7 @@ int main(int c, char *v[])
                          img.w, img.h, 1, GDT_Float64,
                          papszOptions );
 
-    double adfGeoTransform[6] = { xmin_orig, resolution, 0, ymin_orig, 0, -resolution };
+    double adfGeoTransform[6] = { xmin_orig, resolution, 0, ymax_orig, 0, -resolution };
     OGRSpatialReferenceH hSRS;
     char *pszSRS_WKT = NULL;
     GDALRasterBandH hBand;
