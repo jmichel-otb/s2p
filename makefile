@@ -117,7 +117,7 @@ SRC = $(SRCIIO) $(SRCFFT) $(SRCKKK)
 SRCIIO = downsa backflow synflow imprintf iion qauto getminmax rescaleintensities qeasy crop morsi\
 	morphoop cldmask disp_to_h_projective colormesh_projective tiffu
 SRCFFT = gblur blur fftconvolve zoom_zeropadding zoom_2d
-SRCKKK = watermask disp_to_heights nan_generator colormesh buildply bin2asc siftu ransac srtm4\
+SRCKKK = watermask disp_to_heights nan_generator colormesh buildply rpc_refiner bin2asc siftu ransac srtm4\
 	srtm4_which_tile plyflatten plyextrema plytodsm
 
 imscript: $(BINDIR) $(TIFDIR)/lib/libtiff.a $(PROGRAMS)
@@ -141,6 +141,9 @@ $(SRCDIR)/coordconvert.o: c/coordconvert.c c/coordconvert.h
 	$(C99) $(CFLAGS) -c $< -lm -o $@
 
 $(SRCDIR)/rpc.o: c/rpc.c c/xfopen.c
+	$(C99) $(CFLAGS) -c $< -o $@
+	
+$(SRCDIR)/refine_rpc.o: c/refine_rpc.c c/rpc.h
 	$(C99) $(CFLAGS) -c $< -o $@
 
 $(SRCDIR)/mt/mt.o: c/mt/mt.c c/mt/mt.h
@@ -170,6 +173,9 @@ $(BINDIR)/watermask: $(SRCDIR)/iio.o $(SRCDIR)/coordconvert.o $(SRCDIR)/Geoid.o\
 	
 $(BINDIR)/disp_to_heights: $(SRCDIR)/iio.o $(SRCDIR)/rpc.o $(SRCDIR)/triangulation.o $(SRCDIR)/coordconvert.o c/disp_to_heights.c c/vvector.h c/iio.h c/rpc.h c/triangulation.h c/coordconvert.h c/read_matrix.c
 	$(C99) $(CFLAGS) $(SRCDIR)/iio.o $(SRCDIR)/rpc.o $(SRCDIR)/triangulation.o $(SRCDIR)/coordconvert.o c/disp_to_heights.c $(IIOLIBS) -o $@
+	
+$(BINDIR)/rpc_refiner: $(SRCDIR)/rpc.o $(SRCDIR)/refine_rpc.o c/rpc_refiner.c c/rpc.h c/refine_rpc.h
+	$(C99) $(CFLAGS)   $(SRCDIR)/rpc.o $(SRCDIR)/refine_rpc.o c/rpc_refiner.c -lm -o $@
 	
 $(BINDIR)/nan_generator: $(SRCDIR)/iio.o c/nan_generator.c c/iio.h  
 	$(C99) $(CFLAGS) $(SRCDIR)/iio.o c/nan_generator.c $(IIOLIBS) -o $@
