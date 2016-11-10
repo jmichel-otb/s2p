@@ -248,9 +248,9 @@ def process_tile(tile_info):
 
     if cfg['clean_intermediate']:
         for i in xrange(nb_pairs):
-            
+
             pair_dir = os.path.join(tile_dir,'pair_%d' %(i+1))
-            
+
             if not cfg['full_vrt']:
                 common.rmtree_if_exists( pair_dir )
             else:
@@ -258,7 +258,7 @@ def process_tile(tile_info):
                 common.rmtree_if_exists( pair_dir )
                 os.makedirs(   pair_dir )
                 shutil.move(os.path.join(tile_dir,'disp2D_crop.tif'), pair_dir )
-                
+
         common.remove_if_exists(os.path.join(tile_dir,'roi_ref.tif'))
         common.remove_if_exists(os.path.join(tile_dir,'rpc_err.tif'))
         common.remove_if_exists(os.path.join(tile_dir,'height_map.tif'))
@@ -271,7 +271,7 @@ def process_tile(tile_info):
         common.remove_if_exists(os.path.join(tile_dir,'rpc_err_rms_allsights.tif'))
         common.remove_if_exists(os.path.join(tile_dir,'ecef_coord_crop.tif'))
         common.remove_if_exists(os.path.join(tile_dir,'ecef_coord.tif'))
-        
+
         if cfg['full_vrt']:
             for i in xrange(1,len(cfg['images'])+1):
                 common.remove_if_exists(os.path.join(tile_dir,'rpc_err_norm_sight_%d.tif' % i ))
@@ -285,14 +285,14 @@ def global_extent(tiles_full_info):
     """
     Compute the global extent from the extrema of each ply file
     """
-    
-    global_extent_path = os.path.join(cfg['out_dir'], 'global_extent.txt')
-    
-    if not (os.path.isfile(global_extent_path) and cfg['skip_existing']):
-        
-        if not cfg['global_extent']:
 
+    global_extent_path = os.path.join(cfg['out_dir'], 'global_extent.txt')
+
+    if not (os.path.isfile(global_extent_path) and cfg['skip_existing']):
+
+        if cfg['global_extent'] is None:
             xmin, xmax, ymin, ymax = float('inf'), -float('inf'), float('inf'), -float('inf')
+
             for tile in tiles_full_info:
                 plyextrema_file = os.path.join(tile['directory'], 'plyextrema.txt')
 
@@ -303,7 +303,12 @@ def global_extent(tiles_full_info):
                     ymin = min(ymin, extremaxy[2])
                     ymax = max(ymax, extremaxy[3])
 
-        global_extent = [xmin, xmax, ymin, ymax]
+            global_extent = [xmin, xmax, ymin, ymax]
+
+
+        else:
+            global_extent = cfg['global_extent']
+
         np.savetxt(global_extent_path, global_extent, fmt='%6.3f')
 
 
@@ -325,30 +330,30 @@ def compute_dsm(args):
     global_xmax = np.ceil(global_xmax)
     global_ymin = np.floor(global_ymin)
     global_ymax = np.ceil(global_ymax)
-    
+
     global_width_pix = np.ceil( (global_xmax - global_xmin) / cfg['dsm_resolution'] )
     global_height_pix = np.ceil( (global_ymax - global_ymin) / cfg['dsm_resolution'] )
-        
+
     number_of_tiles_h = sqrt_number_of_tiles
     number_of_tiles_w = sqrt_number_of_tiles
-    
+
     current_height_index = current_tile // number_of_tiles_w
     current_width_index = current_tile % number_of_tiles_w
-    
+
     dsm_dir = os.path.join(cfg['out_dir'],'dsm')
     out_dsm = os.path.join(dsm_dir,'dsm_%d_%d.tif' % (current_width_index , current_height_index) )
-    
-    height_pix = global_height_pix // number_of_tiles_h 
+
+    height_pix = global_height_pix // number_of_tiles_h
     residual_h = global_height_pix %  number_of_tiles_h
-    width_pix  = global_width_pix // number_of_tiles_w 
+    width_pix  = global_width_pix // number_of_tiles_w
     residual_w = global_width_pix %  number_of_tiles_w
-    
+
     ymin = global_ymin + current_height_index*height_pix*cfg['dsm_resolution']
     xmin = global_xmin + current_width_index*width_pix*cfg['dsm_resolution']
-    
+
     if (current_height_index == number_of_tiles_h-1):
         height_pix = height_pix + residual_h
-        
+
     if (current_width_index == number_of_tiles_w-1):
         width_pix  = width_pix  + residual_w
 
@@ -365,22 +370,22 @@ def compute_dsm(args):
     flag = "-flag %d" % ( flags.get(cfg['dsm_option'],1) )
     radius = "-radius %d" % ( cfg['dsm_radius'] )
     pinterp = "-pinterp %d" % ( cfg['dsm_pinterp'] )
-    
+
     cutinf_path = os.path.join(cfg['out_dir'],'cutinf.txt')
 
     if (ymin <= global_ymax) and (current_tile < number_of_tiles_h*number_of_tiles_w ):
         common.run("plytodsm %s %s %s %s %s %s %s %s %s %s" % (
-                                                 flag,    
-                                                 radius,  
-                                                 pinterp, 
-                                                 cfg['dsm_resolution'], 
-                                                 out_dsm, 
-                                                 xmin, 
-                                                 ymin, 
-                                                 width_pix, 
-                                                 height_pix, 
-                                                 cutinf_path)) 
-                                                 
+                                                 flag,
+                                                 radius,
+                                                 pinterp,
+                                                 cfg['dsm_resolution'],
+                                                 out_dsm,
+                                                 xmin,
+                                                 ymin,
+                                                 width_pix,
+                                                 height_pix,
+                                                 cutinf_path))
+
 
 def global_finalization(tiles_full_info):
     """
@@ -396,7 +401,7 @@ def global_finalization(tiles_full_info):
         tiles_full_info: dictionary providing all the information about the
             processed tiles
     """
-    
+
     if not cfg['no_vrt']:
         globalfinalization.write_vrt_files(tiles_full_info)
     globalfinalization.write_dsm()
