@@ -444,6 +444,16 @@ def global_finalization(tiles_full_info):
     # copy RPC xml files in the output directory
     for img in cfg['images']:
         shutil.copy2(img['rpc'], cfg['out_dir'])
+    
+    # Refine rpc    
+    master_rpc_path = cfg['images'][0]['rpc']
+    global_tiepoints_path = os.path.join(cfg['out_dir'], 'global_tie_points.txt')
+    direct_path = os.path.join(cfg['out_dir'], 'direct.txt')
+    indirect_path = os.path.join(cfg['out_dir'], 'indirect.txt')
+    command1 = "rpc_refiner %s %s 1e-5 -1e-4 2000 1 %s" % (master_rpc_path,global_tiepoints_path,direct_path)
+    command2 = "rpc_refiner %s %s 1e-5 -1e-10 10000 0 %s" % (master_rpc_path,global_tiepoints_path,indirect_path)
+    common.run(command1)
+    common.run(command2)
 
 
 def launch_parallel_calls(fun, list_of_args, nb_workers, extra_args=None):
