@@ -375,8 +375,8 @@ void help(char *s)
 {
 	fprintf(stderr, "usage:\n\t"
 			"%s [-c column] [-flag flag] [-radius radius] [-param_inter param_inter] \
-			resolution out_dsm xmin ymin w h \
-			rowmin steprow rowmax colmin stepcol colmax tw th root_out_dir\n", s);
+			resolution out_dsm xmin ymin w h cutinfo.txt\n", s);
+			//rowmin steprow rowmax colmin stepcol colmax tw th root_out_dir\n", s);
 	fprintf(stderr, "\t the resolution is in meters per pixel\n");
 }
 
@@ -390,7 +390,7 @@ int main(int c, char *v[])
 	double param_inter = atof(pick_option(&c, &v, "pinterp", "1"));
 
 	// process input arguments
-	if (c != 16) {
+	if (c != 8) {
 		help(*v);
 		return 1;
 	}
@@ -408,15 +408,7 @@ int main(int c, char *v[])
 	double ymin_orig=ymin;
 	double ymax_orig=ymax;
 	fprintf(stderr, "xmin: %20f, xmax: %20f, ymin: %20f, ymax: %20f\n", xmin,xmax,ymin,ymax);
-	int rowmin = atoi(v[7]);
-	int steprow = atoi(v[8]);
-	int rowmax = atoi(v[9]);
-	int colmin = atoi(v[10]);
-	int stepcol = atoi(v[11]);
-	int colmax = atoi(v[12]);
-	int tw = atoi(v[13]);
-	int th = atoi(v[14]);
-	char *root_out_dir=v[15];
+    char *cutinfo=v[7];
 
 	if (flag>=6) // interpolation : need more data
 	{
@@ -445,44 +437,67 @@ int main(int c, char *v[])
 
 	// From the list of tiles, find each ply file
 	uint64_t nbply_pushed=0;
-	int row,col;
-	for(row=rowmin;row<=rowmax;row+=steprow)
-	    for(col=colmin;col<=colmax;col+=stepcol)
-	    {
-	       //strtok(tile_dir, "\n");
-	       sprintf(ply_extrema,"%s/tile_%d_%d_row_%d/col_%d/plyextrema.txt",root_out_dir,tw,th,row,col);
 
-	       // Now, find the extent of a given ply file,
-	       // specified by [local_xmin local_xmax local_ymin local_ymax]
-	       ply_extrema_file = fopen(ply_extrema, "r");
-	       if (ply_extrema_file)
-	       {
-		  fscanf(ply_extrema_file, "%f %f %f %f", &local_xmin, &local_xmax, &local_ymin, &local_ymax);
-		  fclose(ply_extrema_file);
+    FILE* cutinfo_file = fopen(cutinfo, "r");
 
-		  // Only add ply files that intersect the extent specified by [xmin xmax ymin ymax]
-		  // The test below simply tells whether two rectancles overlap
-		  if ( (local_xmin <= xmax) && (local_xmax >= xmin) && (local_ymin <= ymax) && (local_ymax >= ymin) )
-		   {
-		       sprintf(ply,"%s/tile_%d_%d_row_%d/col_%d/cloud.ply",root_out_dir,tw,th,row,col);
-		       // Record UTM zone
-		       FILE *ply_file = fopen(ply, "r");
-			if (ply_file)
-			{
-			    l = push(l, ply);
-			    nbply_pushed++;
-			    int isbin=0;
-			    struct ply_property t[100];
-			    size_t n = header_get_record_length_and_utm_zone(ply_file, utm, &isbin, t);
-			    fclose(ply_file);
-			}
-			else
-			    fprintf(stderr, "WARNING 2 : can not open file \"%s\"\n", ply);
-		   }
-	       }
-	       else
-		    fprintf(stderr,"WARNING 1 : can not open file %s\n",ply_extrema);
-	    } //end for loops
+    if (cutinfo_file)
+    {
+        int rowmin,steprow,rowmax;
+        int colmin,stepcol,colmax;
+        int tw,th,row,col;
+        char root_out_dir[1000];
+
+        while (
+
+            fscanf(cutinfo_file, "%d %d %d %d %d %d %d %d %s\n",
+                &rowmin,&steprow,&rowmax,
+                &colmin,&stepcol,&colmax,
+                &tw,&th,root_out_dir) != EOF
+
+              )
+        {
+            for(row=rowmin;row<=rowmax;row+=steprow)
+                for(col=colmin;col<=colmax;col+=stepcol)
+                {
+                   //strtok(tile_dir, "\n");
+                   sprintf(ply_extrema,"%s/tile_%d_%d_row_%d/col_%d/plyextrema.txt",root_out_dir,tw,th,row,col);
+
+                   // Now, find the extent of a given ply file,
+                   // specified by [local_xmin local_xmax local_ymin local_ymax]
+                   ply_extrema_file = fopen(ply_extrema, "r");
+                   if (ply_extrema_file)
+                    {
+                        fscanf(ply_extrema_file, "%f %f %f %f", &local_xmin, &local_xmax, &local_ymin, &local_ymax);
+                        fclose(ply_extrema_file);
+
+                        // Only add ply files that intersect the extent specified by [xmin xmax ymin ymax]
+                        // The test below simply tells whether two rectancles overlap
+                        if ( (local_xmin <= xmax) && (local_xmax >= xmin) && (local_ymin <= ymax) && (local_ymax >= ymin) )
+                        {
+                            sprintf(ply,"%s/tile_%d_%d_row_%d/col_%d/cloud.ply",root_out_dir,tw,th,row,col);
+                            // Record UTM zone
+                            FILE *ply_file = fopen(ply, "r");
+                            if (ply_file)
+                            {
+                                l = push(l, ply);
+                                nbply_pushed++;
+                                int isbin=0;
+                                struct ply_property t[100];
+                                size_t n = header_get_record_length_and_utm_zone(ply_file, utm, &isbin, t);
+                                fclose(ply_file);
+                            }
+                            else
+                                fprintf(stderr, "WARNING 2 : can not open file \"%s\"\n", ply);
+                        }
+                   }
+                   else
+                    fprintf(stderr,"WARNING 1 : can not open file %s\n",ply_extrema);
+                } //end for loops
+        }
+        fclose(cutinfo_file);
+    }
+    else
+        fprintf(stderr, "WARNING 3 : can not open file \"%s\"\n", cutinfo);
 
 	if (nbply_pushed == 0)
 	{
