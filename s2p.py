@@ -218,7 +218,12 @@ def process_tile(tile_info):
 
         # process each pair to get the disparity maps
         for pair_id in xrange(1, nb_pairs + 1):
-            get_disparity_maps(tile_info, pair_id)
+            try:
+                get_disparity_maps(tile_info, pair_id)
+            except Exception:
+                tile_dir = tile_info['directory']
+                pair_dir = os.path.join(tile_dir, 'pair_%d' % (pair_id))
+                traceback.print_exc(file=open(os.path.join(pair_dir, 'dont_process_this_pair.txt'), 'w'))
 
         # triangulation
         if (cfg['skip_existing'] and
