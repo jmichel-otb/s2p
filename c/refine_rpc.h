@@ -25,13 +25,13 @@ double * get_addressi(struct rpc *rpc_coef,int i);
 double perf_deriv(double **addr, int i, double step, bool direct,
 struct rpc *rpc_coef, Tie_point* list_tie_points, unsigned int nb_tie_points);
 
-void gradient(double **addr, double h, bool direct,
+void gradient(double **addr, int size, double h, bool direct,
 struct rpc *rpc_coef, Tie_point* list_tie_points, unsigned int nb_tie_points,
 double *out);
 
-void update(double **addr, double *gradient,double step);
+void update(double **addr, int size, double *gradient,double step);
 
-void gradient_descent(double **addr, double step_deriv, double step_grad, bool direct,
+void gradient_descent(double **addr, int size, double step_deriv, double step_grad, bool direct,
 struct rpc *rpc_coef, Tie_point* list_tie_points, unsigned int nb_tie_points, int nb_iter);
 
 int write_rpc_coef(char *filename,double **addr);

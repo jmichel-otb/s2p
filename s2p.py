@@ -450,8 +450,8 @@ def global_finalization(tiles_full_info):
     global_tiepoints_path = os.path.join(cfg['out_dir'], 'global_tie_points.txt')
     direct_path = os.path.join(cfg['out_dir'], 'direct.txt')
     indirect_path = os.path.join(cfg['out_dir'], 'indirect.txt')
-    command1 = "rpc_refiner %s %s 1e-5 -1e-4 2000 1 %s" % (master_rpc_path,global_tiepoints_path,direct_path)
-    command2 = "rpc_refiner %s %s 1e-5 -1e-10 10000 0 %s" % (master_rpc_path,global_tiepoints_path,indirect_path)
+    command1 = "rpc_refiner %s %s 1e-5 -1e-2 2000 1 1 %s" % (master_rpc_path,global_tiepoints_path,direct_path)
+    command2 = "rpc_refiner %s %s 1e-5 -1e-9 10000 0 1 %s" % (master_rpc_path,global_tiepoints_path,indirect_path)
     common.run(command1)
     common.run(command2)
 

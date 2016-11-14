@@ -87,10 +87,12 @@ double perf_rpc(struct rpc *rpc_coef,Tie_point* list_tie_points, unsigned int nb
 }
 
 
+// Direct model
 double * get_address(struct rpc *p, int i)
 {
     if (false);
-    // pleiades tags
+    
+    // (pleiades tags <SAMP_NUM_COEFF_?> )
 	else if (i==0)   return &p->numx[0];
 	else if (i==1)   return &p->numx[1];
 	else if (i==2)   return &p->numx[2];
@@ -112,6 +114,7 @@ double * get_address(struct rpc *p, int i)
 	else if (i==18)   return &p->numx[18];
 	else if (i==19)   return &p->numx[19];
     
+    // (pleiades tags <SAMP_DEN_COEFF_?> )
     else if (i==20)   return &p->denx[0];
 	else if (i==21)   return &p->denx[1];
 	else if (i==22)   return &p->denx[2];
@@ -133,6 +136,7 @@ double * get_address(struct rpc *p, int i)
 	else if (i==38)   return &p->denx[18];
 	else if (i==39)   return &p->denx[19];
     
+    // (pleiades tags <LINE_NUM_COEFF_?> )
     else if (i==40)   return &p->numy[0];
 	else if (i==41)   return &p->numy[1];
 	else if (i==42)   return &p->numy[2];
@@ -154,6 +158,7 @@ double * get_address(struct rpc *p, int i)
 	else if (i==58)   return &p->numy[18];
 	else if (i==59)   return &p->numy[19];
     
+    // (pleiades tags <LINE_DEN_COEFF_?> )
     else if (i==60)   return &p->deny[0];
 	else if (i==61)   return &p->deny[1];
 	else if (i==62)   return &p->deny[2];
@@ -175,23 +180,44 @@ double * get_address(struct rpc *p, int i)
 	else if (i==78)   return &p->deny[18];
 	else if (i==79)   return &p->deny[19];
     
+    // (pleiades tags <SAMP_SCALE> )
     else if (i==80)   return &p->scale[0];
+    
+    // (pleiades tags <LINE_SCALE> )
 	else if (i==81)   return &p->scale[1];
+    
+    // (pleiades tags <HEIGHT_SCALE> )
 	else if (i==82)   return &p->scale[2];
+    
+    // (pleiades tags <SAMP_OFF> )
 	else if (i==83)   return &p->offset[0];
+    
+    // (pleiades tags <LINE_OFF> )
 	else if (i==84)   return &p->offset[1];
+    
+    // (pleiades tags <HEIGHT_OFF> )
 	else if (i==85)   return &p->offset[2];
     
+    // (pleiades tags <LONG_SCALE> )
     else if (i==86)   return &p->iscale[0];
+    
+    // (pleiades tags <LAT_SCALE> )
 	else if (i==87)   return &p->iscale[1];
+    
+    // (pleiades tags <LONG_OFF> )
 	else if (i==88)   return &p->ioffset[0];
+    
+    // (pleiades tags <LAT_OFF> )
 	else if (i==89)   return &p->ioffset[1];
 }
 
+
+// Indirect model
 double * get_addressi(struct rpc *p, int i)
 {
     if (false);
-    // pleiades tags
+    
+    // (pleiades tags <SAMP_NUM_COEFF_?> )
 	else if (i==0)   return &p->inumx[0];
 	else if (i==1)   return &p->inumx[1];
 	else if (i==2)   return &p->inumx[2];
@@ -213,6 +239,7 @@ double * get_addressi(struct rpc *p, int i)
 	else if (i==18)   return &p->inumx[18];
 	else if (i==19)   return &p->inumx[19];
     
+    // (pleiades tags <SAMP_DEN_COEFF_?> )
     else if (i==20)   return &p->idenx[0];
 	else if (i==21)   return &p->idenx[1];
 	else if (i==22)   return &p->idenx[2];
@@ -234,6 +261,7 @@ double * get_addressi(struct rpc *p, int i)
 	else if (i==38)   return &p->idenx[18];
 	else if (i==39)   return &p->idenx[19];
     
+    // (pleiades tags <LINE_NUM_COEFF_?> )
     else if (i==40)   return &p->inumy[0];
 	else if (i==41)   return &p->inumy[1];
 	else if (i==42)   return &p->inumy[2];
@@ -255,6 +283,7 @@ double * get_addressi(struct rpc *p, int i)
 	else if (i==58)   return &p->inumy[18];
 	else if (i==59)   return &p->inumy[19];
     
+    // (pleiades tags <LINE_DEN_COEFF_?> )
     else if (i==60)   return &p->ideny[0];
 	else if (i==61)   return &p->ideny[1];
 	else if (i==62)   return &p->ideny[2];
@@ -276,16 +305,34 @@ double * get_addressi(struct rpc *p, int i)
 	else if (i==78)   return &p->ideny[18];
 	else if (i==79)   return &p->ideny[19];
     
+    // (pleiades tags <LONG_SCALE> )
     else if (i==80)   return &p->iscale[0];
+    
+    // (pleiades tags <LAT_SCALE> )
 	else if (i==81)   return &p->iscale[1];
+    
+    // (pleiades tags <HEIGHT_SCALE> )
 	else if (i==82)   return &p->iscale[2];
+    
+    // (pleiades tags <LONG_OFF> )
 	else if (i==83)   return &p->ioffset[0];
+    
+    // (pleiades tags <LAT_OFF> )
 	else if (i==84)   return &p->ioffset[1];
+    
+    // (pleiades tags <HEIGHT_OFF> )
 	else if (i==85)   return &p->ioffset[2];
     
+    // (pleiades tags <SAMP_SCALE> )
     else if (i==86)   return &p->scale[0];
+    
+    // (pleiades tags <LINE_SCALE> )
 	else if (i==87)   return &p->scale[1];
+    
+    // (pleiades tags <SAMP_OFF> )
 	else if (i==88)   return &p->offset[0];
+    
+    // (pleiades tags <LAT_OFF> )
 	else if (i==89)   return &p->offset[1];
 }
 
@@ -316,43 +363,43 @@ struct rpc *rpc_coef, Tie_point* list_tie_points, unsigned int nb_tie_points)
     return (val1-val2)/(2.0*h);
 }
 
-void gradient(double **addr, double h, bool direct,
+void gradient(double **addr, int size, double h, bool direct,
 struct rpc *rpc_coef, Tie_point* list_tie_points, unsigned int nb_tie_points,
 double *out)
 {
-    for(int i=0;i<90;i++)
+    for(int i=0;i<size;i++)
         out[i] = perf_deriv(addr, i, h, direct,
         rpc_coef, list_tie_points, nb_tie_points);
     
 }
 
-double norm_gradient(double *gradient)
+double norm_gradient(double *gradient, int size)
 {
     double sum=0;
-    for(int i=0;i<90;i++)
+    for(int i=0;i<size;i++)
         sum += pow(gradient[i],2.0);
     return sqrt(sum);
 }
 
-void update(double **addr, double *gradient,double step)
+void update(double **addr, int size, double *gradient,double step)
 {
-    for(int i=0;i<90;i++)
+    for(int i=0;i<size;i++)
         *addr[i] += step*gradient[i];
 }
 
 
-void gradient_descent(double **addr, double step_deriv, double step_grad, bool direct,
+void gradient_descent(double **addr, int size, double step_deriv, double step_grad, bool direct,
 struct rpc *rpc_coef, Tie_point* list_tie_points, unsigned int nb_tie_points, int nb_iter)
 {
-    double gradient_val[90];
+    double *gradient_val = (double *) malloc(size*sizeof(double));
     double norm,perf;
     
     for(int i=0;i<nb_iter;i++)
     {
-        gradient(addr,step_deriv, direct,
+        gradient(addr, size, step_deriv, direct,
             rpc_coef, list_tie_points, nb_tie_points, gradient_val);
-        norm = norm_gradient(gradient_val);
-        update(addr, gradient_val,step_grad);
+        norm = norm_gradient(gradient_val,size);
+        update(addr, size, gradient_val,step_grad);
         
         if (direct)
             perf = perf_rpc(rpc_coef,list_tie_points, nb_tie_points);
@@ -360,6 +407,9 @@ struct rpc *rpc_coef, Tie_point* list_tie_points, unsigned int nb_tie_points, in
             perf = perf_rpci(rpc_coef,list_tie_points, nb_tie_points);
         printf("perf = %f  norm gradient = %f  (i=%d)\n",perf,norm,i);
     }
+    
+    // clean mem
+    free(gradient_val);
 }
 
 int write_rpc_coef(char *filename,double **addr)
