@@ -117,7 +117,7 @@ SRC = $(SRCIIO) $(SRCFFT) $(SRCKKK)
 SRCIIO = downsa backflow synflow imprintf iion qauto getminmax rescaleintensities qeasy crop morsi\
 	morphoop cldmask disp_to_h_projective colormesh_projective tiffu
 SRCFFT = gblur blur fftconvolve zoom_zeropadding zoom_2d
-SRCKKK = watermask disp_to_heights nan_generator colormesh buildply rpc_refiner bin2asc siftu ransac srtm4\
+SRCKKK = watermask disp_to_heights nan_generator colormesh buildply rpc_refiner rpc_perf bin2asc siftu ransac srtm4\
 	srtm4_which_tile plyflatten plyextrema plytodsm
 
 imscript: $(BINDIR) $(TIFDIR)/lib/libtiff.a $(PROGRAMS)
@@ -176,6 +176,9 @@ $(BINDIR)/disp_to_heights: $(SRCDIR)/iio.o $(SRCDIR)/rpc.o $(SRCDIR)/triangulati
 	
 $(BINDIR)/rpc_refiner: $(SRCDIR)/rpc.o $(SRCDIR)/refine_rpc.o c/rpc_refiner.c c/rpc.h c/refine_rpc.h
 	$(C99) $(CFLAGS)   $(SRCDIR)/rpc.o $(SRCDIR)/refine_rpc.o c/rpc_refiner.c -lm -o $@
+
+$(BINDIR)/rpc_perf: $(SRCDIR)/rpc.o $(SRCDIR)/refine_rpc.o c/rpc_perf.c c/rpc.h c/refine_rpc.h
+	$(C99) $(CFLAGS)   $(SRCDIR)/rpc.o $(SRCDIR)/refine_rpc.o c/rpc_perf.c -lm -o $@
 	
 $(BINDIR)/nan_generator: $(SRCDIR)/iio.o c/nan_generator.c c/iio.h  
 	$(C99) $(CFLAGS) $(SRCDIR)/iio.o c/nan_generator.c $(IIOLIBS) -o $@
