@@ -174,8 +174,8 @@ $(BINDIR)/watermask: $(SRCDIR)/iio.o $(SRCDIR)/coordconvert.o $(SRCDIR)/Geoid.o\
 $(BINDIR)/disp_to_heights: $(SRCDIR)/iio.o $(SRCDIR)/rpc.o $(SRCDIR)/triangulation.o $(SRCDIR)/coordconvert.o c/disp_to_heights.c c/vvector.h c/iio.h c/rpc.h c/triangulation.h c/coordconvert.h c/read_matrix.c
 	$(C99) $(CFLAGS) $(SRCDIR)/iio.o $(SRCDIR)/rpc.o $(SRCDIR)/triangulation.o $(SRCDIR)/coordconvert.o c/disp_to_heights.c $(IIOLIBS) -o $@
 	
-$(BINDIR)/rpc_refiner: $(SRCDIR)/rpc.o $(SRCDIR)/refine_rpc.o c/rpc_refiner.c c/rpc.h c/refine_rpc.h
-	$(C99) $(CFLAGS)   $(SRCDIR)/rpc.o $(SRCDIR)/refine_rpc.o c/rpc_refiner.c -lm -o $@
+$(BINDIR)/rpc_refiner: $(SRCDIR)/rpc.o $(SRCDIR)/refine_rpc.o $(SRCDIR)/coordconvert.o c/rpc_refiner.c c/rpc.h c/refine_rpc.h
+	$(C99) $(CFLAGS)   $(SRCDIR)/rpc.o $(SRCDIR)/refine_rpc.o $(SRCDIR)/coordconvert.o c/rpc_refiner.c -lm -o $@
 
 $(BINDIR)/rpc_perf: $(SRCDIR)/rpc.o $(SRCDIR)/refine_rpc.o c/rpc_perf.c c/rpc.h c/refine_rpc.h
 	$(C99) $(CFLAGS)   $(SRCDIR)/rpc.o $(SRCDIR)/refine_rpc.o c/rpc_perf.c -lm -o $@

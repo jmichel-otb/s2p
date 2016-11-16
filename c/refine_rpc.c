@@ -3,7 +3,7 @@
 #include "math.h"
 #include "rpc.h"
 #include "refine_rpc.h"
-
+#include "coordconvert.h"
 
 int get_tie_points(char *filename, Tie_point* list_tie_points, unsigned int nb_tie_points)
 {
@@ -68,21 +68,18 @@ double perf_rpci(struct rpc *rpc_coef,Tie_point* list_tie_points, unsigned int n
 double perf_rpc(struct rpc *rpc_coef,Tie_point* list_tie_points, unsigned int nb_tie_points)
 {
     double pos[2],difflgt,difflat;
-    double difflgt_moy=0.,difflat_moy=0.,tot_moy=0.0;
+    double difflgt_moy=0.,difflat_moy=0.,tot_moy=0.0;  
+    double X1,Y1,Z1;
+    double X2,Y2,Z2;
     for(unsigned int t=0;t<nb_tie_points;t++)
     {
         eval_rpc(pos, rpc_coef, list_tie_points[t].lgt, list_tie_points[t].lat, list_tie_points[t].alt);
-        difflgt = pow(pos[0]-list_tie_points[t].lgt,2.0);
-        difflat = pow(pos[1]-list_tie_points[t].lat,2.0);
-        //difflgt_moy += difflgt;
-        //difflat_moy += difflat;
-        tot_moy += difflgt + difflat;
-        //printf("%f %f --> %f %f  (%f %f)\n",list_tie_points[t].lgt,list_tie_points[t].lat,pos[0],pos[1],difflgt,difflat);
+        geotedic_to_ECEF(pos[0],pos[1],list_tie_points[t].alt,&X1,&Y1,&Z1);
+        geotedic_to_ECEF(list_tie_points[t].lgt,list_tie_points[t].lat,list_tie_points[t].alt,&X2,&Y2,&Z2);
+        tot_moy += pow(X2-X1,2.0) + pow(Y2-Y1,2.0) + pow(Z2-Z1,2.0);
     }
-    //difflgt_moy = sqrt( difflgt_moy / ( (double) nb_tie_points) );
-    //difflat_moy = sqrt( difflat_moy / ( (double) nb_tie_points) );
+
     tot_moy = sqrt( tot_moy / ( (double) nb_tie_points) );
-    //printf("RMS.lgt = %f  RMS.lat = %f RMS.tot = %f \n",difflgt_moy,difflat_moy,tot_moy);
     return tot_moy;
 }
 
