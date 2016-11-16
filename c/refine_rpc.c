@@ -73,7 +73,7 @@ double perf_rpc(struct rpc *rpc_coef,Tie_point* list_tie_points, unsigned int nb
     double X2,Y2,Z2;
     for(unsigned int t=0;t<nb_tie_points;t++)
     {
-        eval_rpc(pos, rpc_coef, list_tie_points[t].lgt, list_tie_points[t].lat, list_tie_points[t].alt);
+        eval_rpc(pos, rpc_coef, list_tie_points[t].x, list_tie_points[t].y, list_tie_points[t].alt);
         geotedic_to_ECEF(pos[0],pos[1],list_tie_points[t].alt,&X1,&Y1,&Z1);
         geotedic_to_ECEF(list_tie_points[t].lgt,list_tie_points[t].lat,list_tie_points[t].alt,&X2,&Y2,&Z2);
         tot_moy += pow(X2-X1,2.0) + pow(Y2-Y1,2.0) + pow(Z2-Z1,2.0);
