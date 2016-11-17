@@ -181,10 +181,10 @@ def init_dirs_srtm(config_file):
                                       *cfg['roi'].values())
     for s in srtm_tiles:
         srtm.get_srtm_tile(s, cfg['srtm_dir'])
-        
+
     # cutting info
     cutinf_path = os.path.join(cfg['out_dir'],'cutinf.txt')
-    
+
     if not (os.path.isfile(cutinf_path)):
         x, y, w, h, z, ov, tw, th, nb_pairs = cutting(config_file)
         range_y = np.arange(y, y + h - ov, th - ov)
@@ -192,11 +192,11 @@ def init_dirs_srtm(config_file):
         colmin, rowmin, tw, th = common.round_roi_to_nearest_multiple(z, range_x[0], range_y[0], tw, th)
         colmax, rowmax, tw, th = common.round_roi_to_nearest_multiple(z, range_x[-1], range_y[-1], tw, th)
         cutinf = '%d %d %d %d %d %d %d %d %s' % (rowmin, th - ov, rowmax, colmin, tw - ov, colmax, tw, th, cfg['out_dir'])
-        
+
         fi = open( cutinf_path, 'w')
         fi.write(cutinf)
         fi.close()
-        
+
     # duplicate stdout and stderr to log file
     tee.Tee('%s/stdout.log' % cfg['out_dir'], 'w')
 
@@ -218,7 +218,7 @@ def cutting(config_file):
     # Automatically compute optimal size for tiles
     # tw, th : dimensions of the tiles
     # ov : width of overlapping bands between tiles
-    ov = z * 100
+    ov = z * cfg["overlap"]
     if w <= z * cfg['tile_size']:
         tw = w
     else:

@@ -32,7 +32,7 @@ cfg['tile_size']  = 800
 
 # max number of tiles processed in parallel. None means the number of cores of
 # the cpu.
-cfg['max_nb_threads'] = None 
+cfg['max_nb_threads'] = None
 
 # debug mode: no parallelisation, and more verbose logs
 cfg['debug'] = False
@@ -125,9 +125,9 @@ cfg['no_vrt'] = False
 # (in installed)
 cfg['run_LidarPreprocessor'] = False
 
-# Tells whether we only want height_map.vrt 
+# Tells whether we only want height_map.vrt
 # and rpc_err.vrt (False) or some other
-# vrt product, sucha as nb of views per pixel, 
+# vrt product, sucha as nb of views per pixel,
 # and so on... (True).
 cfg['full_vrt'] = False
 
@@ -143,7 +143,7 @@ cfg['thr_cons'] = 1
 # Convert vrt to plain tiffs
 cfg['vrt_to_tiff'] = False
 
-# Force global extent 
+# Force global extent
 # global_extent = [xmin, xmax, ymin, ymax]
 cfg['global_extent']= None
 
@@ -151,3 +151,5 @@ cfg['global_extent']= None
 # files whose points are in ECEF coord.
 cfg['ecef_ply']= False
 
+# Overlap between tiles
+cfg["overlap"] = 100
