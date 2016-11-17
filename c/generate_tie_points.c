@@ -115,7 +115,7 @@ int main_generate_tie_points(int c, char *v[])
     FILE * ftie_points = NULL;
     if ( refine_rpc )
     {
-        sprintf(fname_tie_points,"%s/tie_points_bis.txt",tile_dir);
+        sprintf(fname_tie_points,"%s/tie_points.txt",tile_dir);
         ftie_points = fopen(fname_tie_points,"w");
         if (ftie_points)
         {
