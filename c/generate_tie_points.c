@@ -45,8 +45,8 @@ int main_generate_tie_points(int c, char *v[])
     sprintf(fout_ecef,"%s/ecef_coord.tif",tile_dir);
     //float *ecef = (float *) calloc(width*height, sizeof(float));
     int wid,hei,pd;
-    float *ecef = NULL;
-    ecef = iio_read_image_float_vec(fout_ecef, &wid, &hei,&pd);
+    double *ecef = NULL;
+    ecef = iio_read_image_double_vec(fout_ecef, &wid, &hei,&pd);
     
     if (!ecef)
         return -1;

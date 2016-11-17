@@ -154,7 +154,7 @@ int main_disp_to_heights(int c, char *v[])
     // * ECEF coord
     char fout_ecef[1000];
     sprintf(fout_ecef,"%s/ecef_coord.tif",tile_dir);
-    float *ecef = (float *) malloc(3*width*height*sizeof( float ));
+    double *ecef = (double *) malloc(3*width*height*sizeof( double ));
     
     // * rpc errors
     typedef char tabchar[1000];
@@ -491,7 +491,7 @@ int main_disp_to_heights(int c, char *v[])
         
     // save the height map / error map / full outputs
     iio_save_image_float(fout_heights, heightMap, width, height);
-    iio_save_image_float_vec(fout_ecef, ecef, width, height, 3);
+    iio_save_image_double_vec(fout_ecef, ecef, width, height, 3);
     for(int i=0;i<size_of_fout_err_tab;i++)
         iio_save_image_float(fout_err_tab[i], errMap_tab[i], width, height);
     if (full_outputs)
