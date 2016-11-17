@@ -35,7 +35,10 @@ def compute_height_map(global_out_dir,
                        col, row, tw, th, z,
                        int(cfg['trg_cons']),cfg['thr_cons'], int(cfg['full_vrt']),
                        rpc_list_str)
-
+    common.run(cmd)
+    
+    cmd = "generate_tie_points %s %s %s %s %s %s " % (global_out_dir,
+                       col, row, tw, th, z)
     common.run(cmd)
 
     return
