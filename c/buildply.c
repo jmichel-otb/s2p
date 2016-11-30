@@ -14,7 +14,7 @@ static void get_utm_coord(double *out, double lat, double lon, double alt, int z
     out[2] = alt;
 }
 
-void write_ply_header(FILE* f, uint64_t npoints, char * comments, bool colors)
+void write_ply_header(FILE* f, uint64_t npoints, char * comments, bool colors, int pdc)
 {
     fprintf(f, "ply\n");
     fprintf(f, "format binary_little_endian 1.0\n");
@@ -24,10 +24,16 @@ void write_ply_header(FILE* f, uint64_t npoints, char * comments, bool colors)
     fprintf(f, "property double x\n");
     fprintf(f, "property double y\n");
     fprintf(f, "property double z\n");
-    if (colors) {
-        fprintf(f, "property uchar red\n");
-        fprintf(f, "property uchar green\n");
-        fprintf(f, "property uchar blue\n");
+    if (colors)
+    {
+        if (pdc == 3)
+        {
+            fprintf(f, "property uchar red\n");
+            fprintf(f, "property uchar green\n");
+            fprintf(f, "property uchar blue\n");
+        }
+        else if (pdc == 1)
+            fprintf(f, "property uchar gray\n");
     }
     fprintf(f, "end_header\n");
 }
@@ -100,7 +106,7 @@ int main(int c, char *v[])
     int w, h, pd;
     double *ecef = iio_read_image_double_vec(fname_ecef, &w, &h, &pd);
     // * colors
-    int wc, hc, pdc;
+    int wc, hc, pdc=0;
     double *clr;
     if (there_is_color)
          clr = iio_read_image_double_vec(fname_colors, &wc, &hc, &pdc);
@@ -153,7 +159,7 @@ int main(int c, char *v[])
     {
         char comments_UTM[1000];
         sprintf(comments_UTM,"comment projection: UTM %i%s\n", zone, (hem ? "N" : "S"));
-        write_ply_header(ply_file, npoints, comments_UTM, there_is_color);
+        write_ply_header(ply_file, npoints, comments_UTM, there_is_color, pdc);
     }
     else
     {
@@ -169,7 +175,7 @@ int main(int c, char *v[])
         {
             char comments_ECEF[1000];
             sprintf(comments_ECEF,"comment projection: ECEF\n");
-            write_ply_header(ecef_ply_file, npoints, comments_ECEF, there_is_color);
+            write_ply_header(ecef_ply_file, npoints, comments_ECEF, there_is_color, pdc);
         }
         else
         {
@@ -181,7 +187,7 @@ int main(int c, char *v[])
     // fill ply file
     size_t point_size = 3*sizeof(double);
     if (there_is_color)
-        point_size += 3*sizeof(uint8_t);
+        point_size += pdc*sizeof(uint8_t);
    
     char *buf = (char *) malloc(point_size);
     char *buf_ecef;
@@ -209,16 +215,17 @@ int main(int c, char *v[])
             
             // write to memory UTM coord
             double *ptr_double = (double *) buf;
-            ptr_double[0] = utm_coord[0];
-            ptr_double[1] = utm_coord[1];
-            ptr_double[2] = utm_coord[2];
+            for(int t=0; t<3; t++)
+                ptr_double[t] = utm_coord[t];
             
             if (there_is_color)
             {
                 char *ptr_char = buf + 3*sizeof(double);
-                ptr_char[0] = clr[w*3*y+3*x];
-                ptr_char[1] = clr[w*3*y+3*x+1];
-                ptr_char[2] = clr[w*3*y+3*x+2];
+                if (pdc == 3)
+                    for(int t=0; t<3; t++)
+                        ptr_char[t] = clr[w*3*y+3*x+t];
+                else if (pdc == 1)
+                    ptr_char[0] = clr[w*y+x];
             }
             fwrite( buf, point_size, 1, ply_file);
             
@@ -226,16 +233,17 @@ int main(int c, char *v[])
             if (output_ecef)
             {
                 double *ptr_double = (double *) buf_ecef;
-                ptr_double[0] = ecef[w*3*y+3*x];
-                ptr_double[1] = ecef[w*3*y+3*x+1];
-                ptr_double[2] = ecef[w*3*y+3*x+2];
+                for(int t=0; t<3; t++)
+                    ptr_double[t] = ecef[w*3*y+3*x+t];
                 
                 if (there_is_color)
                 {
                     char *ptr_char = buf_ecef + 3*sizeof(double);
-                    ptr_char[0] = clr[w*3*y+3*x];
-                    ptr_char[1] = clr[w*3*y+3*x+1];
-                    ptr_char[2] = clr[w*3*y+3*x+2];
+                    if (pdc == 3)
+                        for(int t=0; t<3; t++)
+                            ptr_char[t] = clr[w*3*y+3*x+t];
+                    else if (pdc == 1)
+                        ptr_char[0] = clr[w*y+x];
                 }
                 fwrite( buf_ecef, point_size, 1, ecef_ply_file);
             }
