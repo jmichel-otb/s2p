@@ -86,101 +86,104 @@ def mosaic_stitch(vrtfilename, tiles_full_info, filename, w, h, nbch=1, z=1):
     Returns:
         nothing
     """
+    if not (os.path.isfile(vrtfilename) and cfg['skip_existing']):
+        
+        # produce a nan image
+        nan_img_dir = os.path.join(cfg['out_dir'],
+                'tile_%d_%d_nan' % (cfg["tile_size"],cfg["tile_size"]) )
+        if not os.path.exists(nan_img_dir):
+            os.makedirs(nan_img_dir)
+        nan_img = os.path.join(nan_img_dir,'nan.tif')
+        if not os.path.isfile(nan_img):
+            common.run("nan_generator %s %s %s"
+                    % (nan_img,cfg["tile_size"],cfg["tile_size"]))
 
-    # produce a nan image
-    nan_img_dir = os.path.join(cfg['out_dir'],
-            'tile_%d_%d_nan' % (cfg["tile_size"],cfg["tile_size"]) )
-    if not os.path.exists(nan_img_dir):
-        os.makedirs(nan_img_dir)
-    nan_img = os.path.join(nan_img_dir,'nan.tif')
-    if not os.path.isfile(nan_img):
-        common.run("nan_generator %s %s %s"
-                % (nan_img,cfg["tile_size"],cfg["tile_size"]))
+        nan_img = os.path.join('../tile_%d_%d_nan'
+                    % (cfg["tile_size"],cfg["tile_size"]),'nan.tif')
 
-    nan_img = os.path.join('../tile_%d_%d_nan'
-                % (cfg["tile_size"],cfg["tile_size"]),'nan.tif')
+        # some inits
+        vrt_row = {}
+        files_to_remove = []
 
-    # some inits
-    vrt_row = {}
-    files_to_remove = []
+        for tile_dir in tiles_full_info:
 
-    for tile_dir in tiles_full_info:
+            col,row,tw,th=tiles_full_info[tile_dir]
+            height_map = os.path.join(tile_dir,filename)
+            s = height_map.split("/")
+            height_map = os.path.join(*s[1:])
 
-        col,row,tw,th=tiles_full_info[tile_dir]
-        height_map = os.path.join(tile_dir,filename)
-        s = height_map.split("/")
-        height_map = os.path.join(*s[1:])
+            vrt_row.setdefault(row,{'vrt_body' : {},'vrt_dir' : tile_dir.split('/')[0], 'th' : th})
 
-        vrt_row.setdefault(row,{'vrt_body' : {},'vrt_dir' : tile_dir.split('/')[0], 'th' : th})
+            for bandid in xrange(1,nbch+1):
 
-        for bandid in xrange(1,nbch+1):
+                vrt_row[row]['vrt_body'].setdefault(bandid,"")
 
-            vrt_row[row]['vrt_body'].setdefault(bandid,"")
+                height_map_full_path = os.path.join(cfg['out_dir'],vrt_row[row]['vrt_dir'],height_map)
+                if os.path.isfile(height_map_full_path):
+                    files_to_remove.append(height_map_full_path)
+                    item_to_be_pushed = height_map
+                else:
+                    item_to_be_pushed = nan_img
 
-            height_map_full_path = os.path.join(cfg['out_dir'],vrt_row[row]['vrt_dir'],height_map)
-            if os.path.isfile(height_map_full_path):
-                files_to_remove.append(height_map_full_path)
-                item_to_be_pushed = height_map
-            else:
-                item_to_be_pushed = nan_img
+                source=''
+                source+="\t\t<SimpleSource>\n"
+                source+="\t\t\t<SourceFilename relativeToVRT=\"1\">%s</SourceFilename>\n" % item_to_be_pushed
+                source+="\t\t\t<SourceBand>%i</SourceBand>\n" % bandid
+                source+="\t\t\t<SrcRect xOff=\"%i\" yOff=\"%i\" xSize=\"%i\" ySize=\"%i\"/>\n" % (0, 0, tw/z, th/z)
+                source+="\t\t\t<DstRect xOff=\"%i\" yOff=\"%i\" xSize=\"%i\" ySize=\"%i\"/>\n" % (col/z, 0, tw/z, th/z)
+                source+="\t\t</SimpleSource>\n"
 
-            source=''
-            source+="\t\t<SimpleSource>\n"
-            source+="\t\t\t<SourceFilename relativeToVRT=\"1\">%s</SourceFilename>\n" % item_to_be_pushed
-            source+="\t\t\t<SourceBand>%i</SourceBand>\n" % bandid
-            source+="\t\t\t<SrcRect xOff=\"%i\" yOff=\"%i\" xSize=\"%i\" ySize=\"%i\"/>\n" % (0, 0, tw/z, th/z)
-            source+="\t\t\t<DstRect xOff=\"%i\" yOff=\"%i\" xSize=\"%i\" ySize=\"%i\"/>\n" % (col/z, 0, tw/z, th/z)
-            source+="\t\t</SimpleSource>\n"
-
-            if item_to_be_pushed == height_map:
-                vrt_row[row]['vrt_body'][bandid]+=source
-            if item_to_be_pushed == nan_img:
-                source+=vrt_row[row]['vrt_body'][bandid]
-                vrt_row[row]['vrt_body'][bandid]=source
+                if item_to_be_pushed == height_map:
+                    vrt_row[row]['vrt_body'][bandid]+=source
+                if item_to_be_pushed == nan_img:
+                    source+=vrt_row[row]['vrt_body'][bandid]
+                    vrt_row[row]['vrt_body'][bandid]=source
 
 
-    # First, write row vrt file
-    for row,vrt_data in vrt_row.iteritems():
-        th = vrt_data['th']
-        row_vrt_filename = os.path.join(cfg['out_dir'],vrt_data['vrt_dir'],os.path.basename(vrtfilename))
-        files_to_remove.append(row_vrt_filename)
-        tmp_vrt_file = open(row_vrt_filename,'w')
-
-        tmp_vrt_file.write("<VRTDataset rasterXSize=\"%i\" rasterYSize=\"%i\">\n" % (w/z,th/z))
-        for bandid in xrange(1,nbch+1):
-            tmp_vrt_file.write("\t<VRTRasterBand dataType=\"Float32\" band=\"%i\">\n" % bandid)
-            tmp_vrt_file.write(vrt_data['vrt_body'][bandid])
-            tmp_vrt_file.write("\t</VRTRasterBand>\n")
-        tmp_vrt_file.write("</VRTDataset>\n")
-        tmp_vrt_file.close()
-
-    # Next, write entry in final vrt file
-    vrtfile = open(vrtfilename, 'w')
-    vrtfile.write("<VRTDataset rasterXSize=\"%i\" rasterYSize=\"%i\">\n" % (w/z,h/z))
-    for bandid in xrange(1,nbch+1):
-        vrtfile.write("\t<VRTRasterBand dataType=\"Float32\" band=\"%i\">\n" % bandid)
-
+        # First, write row vrt file
         for row,vrt_data in vrt_row.iteritems():
             th = vrt_data['th']
-            vrtfile.write("\t\t<SimpleSource>\n")
-            vrtfile.write("\t\t\t<SourceFilename relativeToVRT=\"1\">%s</SourceFilename>\n" % os.path.join(vrt_data['vrt_dir'],os.path.basename(vrtfilename)))
-            vrtfile.write("\t\t\t<SourceBand>%i</SourceBand>\n" % bandid)
-            vrtfile.write("\t\t\t<SrcRect xOff=\"%i\" yOff=\"%i\" xSize=\"%i\" ySize=\"%i\"/>\n" % (0, 0, w/z, th/z))
-            vrtfile.write("\t\t\t<DstRect xOff=\"%i\" yOff=\"%i\" xSize=\"%i\" ySize=\"%i\"/>\n" % (0, row/z, w/z, th/z))
-            vrtfile.write("\t\t</SimpleSource>\n")
+            row_vrt_filename = os.path.join(cfg['out_dir'],vrt_data['vrt_dir'],os.path.basename(vrtfilename))
+            files_to_remove.append(row_vrt_filename)
+            tmp_vrt_file = open(row_vrt_filename,'w')
 
-        vrtfile.write("\t</VRTRasterBand>\n")
-    vrtfile.write("</VRTDataset>\n")
-    vrtfile.close()
+            tmp_vrt_file.write("<VRTDataset rasterXSize=\"%i\" rasterYSize=\"%i\">\n" % (w/z,th/z))
+            for bandid in xrange(1,nbch+1):
+                tmp_vrt_file.write("\t<VRTRasterBand dataType=\"Float32\" band=\"%i\">\n" % bandid)
+                tmp_vrt_file.write(vrt_data['vrt_body'][bandid])
+                tmp_vrt_file.write("\t</VRTRasterBand>\n")
+            tmp_vrt_file.write("</VRTDataset>\n")
+            tmp_vrt_file.close()
+
+        # Next, write entry in final vrt file
+        vrtfile = open(vrtfilename, 'w')
+        vrtfile.write("<VRTDataset rasterXSize=\"%i\" rasterYSize=\"%i\">\n" % (w/z,h/z))
+        for bandid in xrange(1,nbch+1):
+            vrtfile.write("\t<VRTRasterBand dataType=\"Float32\" band=\"%i\">\n" % bandid)
+
+            for row,vrt_data in vrt_row.iteritems():
+                th = vrt_data['th']
+                vrtfile.write("\t\t<SimpleSource>\n")
+                vrtfile.write("\t\t\t<SourceFilename relativeToVRT=\"1\">%s</SourceFilename>\n" % os.path.join(vrt_data['vrt_dir'],os.path.basename(vrtfilename)))
+                vrtfile.write("\t\t\t<SourceBand>%i</SourceBand>\n" % bandid)
+                vrtfile.write("\t\t\t<SrcRect xOff=\"%i\" yOff=\"%i\" xSize=\"%i\" ySize=\"%i\"/>\n" % (0, 0, w/z, th/z))
+                vrtfile.write("\t\t\t<DstRect xOff=\"%i\" yOff=\"%i\" xSize=\"%i\" ySize=\"%i\"/>\n" % (0, row/z, w/z, th/z))
+                vrtfile.write("\t\t</SimpleSource>\n")
+
+            vrtfile.write("\t</VRTRasterBand>\n")
+        vrtfile.write("</VRTDataset>\n")
+        vrtfile.close()
+        
+        if cfg['clean_intermediate']:
+            for f in files_to_remove:
+                common.remove_if_exists(f)
 
     if cfg['vrt_to_tiff']:
         tif_path = os.path.splitext(vrtfilename)[0]+".tif"
         if not (os.path.isfile(tif_path) and cfg['skip_existing']):
             common.run('gdal_translate %s %s' % (vrtfilename, tif_path))
 
-        if cfg['clean_intermediate']:
-            for f in files_to_remove:
-                common.remove_if_exists(f)
+
     return
 
 
