@@ -174,14 +174,15 @@ def mosaic_stitch(vrtfilename, tiles_full_info, filename, w, h, nbch=1, z=1):
         vrtfile.write("</VRTDataset>\n")
         vrtfile.close()
         
-        if cfg['clean_intermediate']:
-            for f in files_to_remove:
-                common.remove_if_exists(f)
 
     if cfg['vrt_to_tiff']:
         tif_path = os.path.splitext(vrtfilename)[0]+".tif"
         if not (os.path.isfile(tif_path) and cfg['skip_existing']):
             common.run('gdal_translate %s %s' % (vrtfilename, tif_path))
+            
+        if cfg['clean_intermediate']:
+            for f in files_to_remove:
+                common.remove_if_exists(f)
 
 
     return
