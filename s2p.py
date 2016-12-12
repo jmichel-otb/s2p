@@ -432,9 +432,12 @@ def global_finalization(tiles_full_info):
             processed tiles
     """
 
+    # build final dsm
+    globalfinalization.write_dsm()
+    
+    # build other products
     if not cfg['no_vrt']:
         globalfinalization.write_vrt_files(tiles_full_info)
-    globalfinalization.write_dsm()
 
     # whole point cloud (LidarViewer format)
     if common.which('LidarPreprocessor') and cfg['run_LidarPreprocessor']:
