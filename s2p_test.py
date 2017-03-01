@@ -12,6 +12,7 @@ import os
 import shutil
 import multiprocessing
 import collections
+import six
 
 import s2p
 import s2plib
@@ -203,7 +204,7 @@ if __name__ == '__main__':
         parser.print_help()
         
         print(os.linesep+'available tests:')
-        for test,commands in registered_tests.iteritems():
+        for test,commands in six.iteritems(registered_tests):
             print('\t'+test)
         exit(1)
 
