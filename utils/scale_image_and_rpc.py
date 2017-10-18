@@ -60,7 +60,12 @@ if __name__ == "__main__":
 
     os.close(fd)
 
-    common.run('gdal_translate -of VRT -a_ullr 0 0 %d %d %s %s' % (w, h,in_img_file, tmp_vrt))
+    w_cropped = w - w%int(scale_x)
+    h_cropped = h -h%int(scale_y)
+
+    print("Cropped image size: {}x{}".format(w_cropped,h_cropped))
+    
+    common.run('gdal_translate -of VRT -srcwin 0 0 %i %i -a_ullr 0 0 %i %i %s %s' % (w_cropped, h_cropped,w_cropped, h_cropped,in_img_file, tmp_vrt))
 
     common.run(('gdal_translate -co RPB=NO -co PROFILE=GeoTIFF -r %s -co "BIGTIFF=IF_NEEDED" -co "TILED=YES" -tr'
          ' %d %d %s %s') % (filt,scale_x,scale_y, tmp_vrt,out_img_file))
